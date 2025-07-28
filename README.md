@@ -23,4 +23,10 @@ Outcome: Build a tool that interprets the financial data to provide a scoring ba
 git clone https://github.com/Powerlearnproject/Credit-Decisioning.git
 ```
 
+Navigate to the working Directory
+
+```
+cd Credit-Decisioning
+```
+
 ### Happy Hacking!
