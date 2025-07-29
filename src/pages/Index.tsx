@@ -6,6 +6,10 @@ import { RecentActivity } from "@/components/RecentActivity";
 import { AccountLinking } from "@/components/AccountLinking";
 import { ImprovementRecommendations } from "@/components/ImprovementRecommendations";
 import { SectorSelection } from "@/components/SectorSelection";
+import { EligibilitySieve } from "@/components/EligibilitySieve";
+import { RiskFlags } from "@/components/RiskFlags";
+import { NarrativeRationale } from "@/components/NarrativeRationale";
+import { AdminDashboard } from "@/components/AdminDashboard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +23,16 @@ import {
   Award,
   Target,
   Calendar,
-  MapPin
+  MapPin,
+  Settings
 } from "lucide-react";
 
 const Index = () => {
   const [language, setLanguage] = useState<"en" | "sw">("en");
   const [selectedSectors, setSelectedSectors] = useState<string[]>(["design"]);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [userRole, setUserRole] = useState<"founder" | "admin">("founder");
+  const [showEligibility, setShowEligibility] = useState(false);
 
   // Mock user data
   const user = {
@@ -132,6 +139,101 @@ const Index = () => {
   const connectedAccounts = accountProviders.filter(p => p.status === "connected").length;
   const completionPercentage = (connectedAccounts / accountProviders.length) * 100;
 
+  // Mock data for enhanced features
+  const mockRiskFlags = [
+    {
+      id: "flag-1",
+      type: "medium" as const,
+      title: "Inconsistent Revenue Reporting",
+      titleSwahili: "Ripoti Zisizofanana za Mapato",
+      description: "Revenue figures don't match across different data sources",
+      descriptionSwahili: "Takwimu za mapato hazifanani katika vyanzo mbalimbali vya data",
+      category: "financial" as const,
+      active: true,
+      timestamp: new Date()
+    }
+  ];
+
+  const mockScoreFactors = [
+    {
+      category: "Digital Presence",
+      categorySwahili: "Uwepo wa Kidijitali",
+      impact: "positive" as const,
+      weight: 0.25,
+      description: "Strong Instagram following with regular engagement",
+      descriptionSwahili: "Wafuasi wengi wa Instagram na ushirikiano wa kawaida",
+      points: 85
+    },
+    {
+      category: "Financial Consistency", 
+      categorySwahili: "Uthabiti wa Kifedha",
+      impact: "negative" as const,
+      weight: 0.30,
+      description: "Irregular income patterns over the last 6 months",
+      descriptionSwahili: "Mifumo ya mapato isiyokuwa ya kawaida kwa miezi 6 iliyopita",
+      points: -15
+    }
+  ];
+
+  const mockNarrative = {
+    summary: "Grace Designs shows strong creative potential with excellent digital presence and customer engagement. However, financial record keeping needs improvement to qualify for higher funding tiers.",
+    summarySwahili: "Grace Designs inaonyesha uwezekano mkubwa wa ubunifu na uwepo mzuri wa kidijitali na ushirikiano wa wateja. Hata hivyo, uhifadhi wa rekodi za kifedha unahitaji kuboresha ili kustahili viwango vya juu vya ufadhili.",
+    decision: "conditional" as const,
+    decisionReason: "Application approved with conditions. Complete financial documentation required before fund disbursement.",
+    decisionReasonSwahili: "Ombi limeidhinishwa kwa masharti. Hati kamili za kifedha zinahitajika kabla ya kutoa fedha.",
+    nextSteps: [
+      "Submit 6 months of M-Pesa statements", 
+      "Provide business bank account statements if available",
+      "Complete financial planning workshop",
+      "Resubmit application for final review"
+    ],
+    nextStepsSwahili: [
+      "Wasilisha taarifa za M-Pesa za miezi 6",
+      "Toa taarifa za akaunti ya benki ya biashara ikiwa zinapatikana", 
+      "Kamilisha warsha ya upangaji wa kifedha",
+      "Wasilisha tena ombi kwa ukaguzi wa mwisho"
+    ]
+  };
+
+  const handleEligibilityComplete = (data: any) => {
+    console.log("Eligibility data:", data);
+    setShowEligibility(false);
+    setActiveTab("dashboard");
+  };
+
+  if (showEligibility) {
+    return (
+      <div className="min-h-screen bg-neutral-light">
+        <DashboardHeader 
+          user={user}
+          language={language}
+          onLanguageChange={handleLanguageChange}
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <EligibilitySieve 
+            language={language}
+            onComplete={handleEligibilityComplete}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (userRole === "admin") {
+    return (
+      <div className="min-h-screen bg-neutral-light">
+        <DashboardHeader 
+          user={{ ...user, name: "James Mwangi - Investment Officer" }}
+          language={language}
+          onLanguageChange={handleLanguageChange}
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <AdminDashboard language={language} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-light">
       <DashboardHeader 
@@ -141,8 +243,35 @@ const Index = () => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Role Toggle */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-2">
+            <Button
+              variant={userRole === "founder" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setUserRole("founder")}
+            >
+              {language === "en" ? "Founder View" : "Mwanzilishi"}
+            </Button>
+            <Button
+              variant={userRole === "admin" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setUserRole("admin")}
+            >
+              {language === "en" ? "Admin View" : "Msimamizi"}
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEligibility(true)}
+          >
+            {language === "en" ? "Start New Application" : "Anza Ombi Jipya"}
+          </Button>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">
               {language === "en" ? "Dashboard" : "Dashibodi"}
             </TabsTrigger>
@@ -154,6 +283,9 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="accounts">
               {language === "en" ? "Accounts" : "Akaunti"}
+            </TabsTrigger>
+            <TabsTrigger value="assessment">
+              {language === "en" ? "Assessment" : "Tathmini"}
             </TabsTrigger>
             <TabsTrigger value="progress">
               {language === "en" ? "Progress" : "Maendeleo"}
@@ -264,6 +396,12 @@ const Index = () => {
 
             {/* Recent Activity */}
             <RecentActivity language={language} />
+            
+            {/* Risk Flags */}
+            <RiskFlags 
+              flags={mockRiskFlags} 
+              language={language} 
+            />
           </TabsContent>
 
           <TabsContent value="score-details" className="space-y-6">
@@ -291,6 +429,16 @@ const Index = () => {
               providers={accountProviders}
               onConnect={handleAccountConnect}
               onDisconnect={handleAccountDisconnect}
+              language={language}
+            />
+          </TabsContent>
+
+          <TabsContent value="assessment" className="space-y-6">
+            <NarrativeRationale
+              score={creditScore}
+              tier="B"
+              factors={mockScoreFactors}
+              narrative={mockNarrative}
               language={language}
             />
           </TabsContent>
