@@ -228,6 +228,15 @@ const Index = () => {
           onLanguageChange={handleLanguageChange}
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setUserRole("founder")}
+            >
+              ← {language === "en" ? "Back to Customer View" : "Rudi kwa Muonekano wa Mteja"}
+            </Button>
+          </div>
           <AdminDashboard language={language} />
         </div>
       </div>
@@ -251,10 +260,10 @@ const Index = () => {
               size="sm"
               onClick={() => setUserRole("founder")}
             >
-              {language === "en" ? "Founder View" : "Mwanzilishi"}
+              {language === "en" ? "Customer View" : "Mwanzilishi"}
             </Button>
             <Button
-              variant={userRole === "admin" ? "default" : "outline"}
+              variant={(userRole as string) === "admin" ? "default" : "outline"}
               size="sm"
               onClick={() => setUserRole("admin")}
             >
