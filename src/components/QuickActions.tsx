@@ -50,11 +50,11 @@ const quickActions: QuickAction[] = [
     color: "from-yellow-500 to-orange-500"
   },
   {
-    id: "find-lenders",
-    title: "Find Lenders",
-    titleSwahili: "Tafuta Wakopeshaji",
-    description: "Discover lenders who serve creative industries",
-    descriptionSwahili: "Gundua wakopeshaji wanaohudumia viwanda vya ubunifu",
+    id: "business-survey",
+    title: "Business Creditworthiness Survey",
+    titleSwahili: "Uchunguzi wa Uongozi wa Biashara",
+    description: "Assess your business on non-financial factors",
+    descriptionSwahili: "Tathmini biashara yako kwa sababu zisizo za kifedha",
     icon: <Building2 className="w-6 h-6" />,
     color: "from-green-500 to-emerald-600"
   },
@@ -95,7 +95,8 @@ const additionalActions: QuickAction[] = [
     description: "Access financial literacy materials",
     descriptionSwahili: "Pata nyenzo za ujuzi wa kifedha",
     icon: <FileText className="w-5 h-5" />,
-    color: "from-teal-500 to-cyan-600"
+    color: "from-teal-500 to-cyan-600",
+    href: "https://www.hevafund.com/advisory"
   }
 ];
 
@@ -154,7 +155,13 @@ export const QuickActions = ({
               key={action.id}
               variant="outline"
               className="h-auto p-4 justify-start group hover:border-primary/50"
-              onClick={() => onActionClick(action.id)}
+              onClick={() => {
+                if (action.href) {
+                  window.open(action.href, '_blank', 'noopener,noreferrer');
+                } else {
+                  onActionClick(action.id);
+                }
+              }}
             >
               <div className="flex items-center gap-3 w-full">
                 <div className={cn(

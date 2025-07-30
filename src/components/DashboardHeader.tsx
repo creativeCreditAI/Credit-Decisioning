@@ -24,18 +24,21 @@ interface DashboardHeaderProps {
   user: {
     name: string;
     avatar?: string;
+    businessName?: string;
     sectors: string[];
   };
   language: "en" | "sw";
   onLanguageChange: (language: "en" | "sw") => void;
   className?: string;
+  userRole?: "user" | "admin";
 }
 
 export const DashboardHeader = ({
   user,
   language,
   onLanguageChange,
-  className
+  className,
+  userRole = "user"
 }: DashboardHeaderProps) => {
   const [notifications] = useState(3); // Mock notification count
 
@@ -85,20 +88,22 @@ export const DashboardHeader = ({
           {/* User Greeting */}
           <div className="hidden md:block text-center">
             <p className="text-sm text-muted-foreground">
-              {greeting()}, {user.name.split(" ")[0]}! 👋
+              {greeting()}, {user.businessName || user.name.split(" ")[0]}! 👋
             </p>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              {user.sectors.slice(0, 2).map((sector, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {sector}
-                </Badge>
-              ))}
-              {user.sectors.length > 2 && (
-                <Badge variant="outline" className="text-xs">
-                  +{user.sectors.length - 2}
-                </Badge>
-              )}
-            </div>
+            {userRole === "user" && (
+              <div className="flex items-center justify-center gap-2 mt-1">
+                {user.sectors.slice(0, 2).map((sector, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {sector}
+                  </Badge>
+                ))}
+                {user.sectors.length > 2 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{user.sectors.length - 2}
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
