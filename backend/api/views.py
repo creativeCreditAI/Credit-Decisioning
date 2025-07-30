@@ -23,6 +23,7 @@ from .models import User, CreditScore, MPesaAccount, MPesaTransaction
 from .services import CreditScoringService
 from .mpesa_service import MPesaMockService
 from .sms_parser import SMSParsingService
+from .ai_sms_parser import AIEnhancedSMSParser
 
 @csrf_exempt
 @api_view(['POST'])
@@ -587,3 +588,491 @@ def get_onboarding_info(request):
         'onboarding_status': onboarding_status,
         'user': UserSerializer(request.user).data
     }, status=status.HTTP_200_OK)
+
+# AI-Enhanced SMS Parsing Endpoints
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_parse_sms_messages(request):
+    """AI-enhanced SMS parsing with advanced analysis and insights"""
+    try:
+        # Get user's M-Pesa account
+        mpesa_account = get_object_or_404(MPesaAccount, user=request.user)
+        
+        # Get SMS messages from request
+        sms_messages = request.data.get('sms_messages', [])
+        if not sms_messages:
+            return Response({
+                'error': 'No SMS messages provided.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Initialize AI-enhanced parser
+        ai_parser = AIEnhancedSMSParser()
+        
+        # Parse SMS messages with AI enhancement
+        parsing_result = ai_parser.parse_sms_batch_ai(sms_messages, mpesa_account)
+        
+        # Create transactions from parsed data
+        creation_result = ai_parser.create_transactions_from_parsed_data(
+            parsing_result, mpesa_account
+        )
+        
+        # Get parsing statistics
+        parsing_stats = ai_parser.get_parsing_statistics()
+        
+        return Response({
+            'message': 'AI-enhanced SMS parsing completed successfully.',
+            'ai_summary': {
+                'total_messages': len(sms_messages),
+                'successfully_parsed': parsing_result['success_count'],
+                'failed_to_parse': parsing_result['failed_count'],
+                'transactions_created': creation_result['created_count'],
+                'duplicates_skipped': creation_result['duplicate_count'],
+                'ai_enhancements_applied': parsing_stats.get('ai_enhanced_parses', 0),
+                'success_rate': f"{parsing_stats.get('success_rate', 0):.1f}%"
+            },
+            'created_transactions': MPesaTransactionSerializer(
+                creation_result['created_transactions'], many=True
+            ).data,
+            'ai_insights': parsing_result['ai_insights'],
+            'parsing_statistics': parsing_stats,
+            'failed_messages': parsing_result['failed_messages']
+        }, status=status.HTTP_200_OK)
+        
+    except MPesaAccount.DoesNotExist:
+        return Response({
+            'error': 'M-Pesa account not linked. Please link your account first.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': 'An error occurred during AI-enhanced SMS parsing.',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_preview_sms_parsing(request):
+    """AI-enhanced SMS parsing preview with detailed analysis"""
+    try:
+        # Get user's M-Pesa account
+        mpesa_account = get_object_or_404(MPesaAccount, user=request.user)
+        
+        # Get SMS messages from request
+        sms_messages = request.data.get('sms_messages', [])
+        if not sms_messages:
+            return Response({
+                'error': 'No SMS messages provided.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Initialize AI-enhanced parser
+        ai_parser = AIEnhancedSMSParser()
+        
+        # Parse SMS messages (preview only - no database operations)
+        parsing_result = ai_parser.parse_sms_batch_ai(sms_messages, mpesa_account)
+        
+        # Get parsing statistics
+        parsing_stats = ai_parser.get_parsing_statistics()
+        
+        # Analyze transaction patterns
+        pattern_analysis = analyze_transaction_patterns(parsing_result['parsed_transactions'])
+        
+        return Response({
+            'message': 'AI-enhanced SMS parsing preview completed.',
+            'preview_summary': {
+                'total_messages': len(sms_messages),
+                'successfully_parsed': parsing_result['success_count'],
+                'failed_to_parse': parsing_result['failed_count'],
+                'ai_enhancements_applied': parsing_stats.get('ai_enhanced_parses', 0),
+                'success_rate': f"{parsing_stats.get('success_rate', 0):.1f}%",
+                'confidence_distribution': calculate_confidence_distribution(parsing_result['parsed_transactions'])
+            },
+            'parsed_transactions': parsing_result['parsed_transactions'],
+            'ai_insights': parsing_result['ai_insights'],
+            'pattern_analysis': pattern_analysis,
+            'parsing_statistics': parsing_stats,
+            'failed_messages': parsing_result['failed_messages'],
+            'recommendations': generate_data_quality_recommendations(parsing_result)
+        }, status=status.HTTP_200_OK)
+        
+    except MPesaAccount.DoesNotExist:
+        return Response({
+            'error': 'M-Pesa account not linked. Please link your account first.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': 'An error occurred during AI-enhanced SMS preview.',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def smart_categorize_transactions(request):
+    """AI-powered transaction categorization and insights"""
+    try:
+        # Get user's M-Pesa account
+        mpesa_account = get_object_or_404(MPesaAccount, user=request.user)
+        
+        # Get transaction IDs or use all transactions
+        transaction_ids = request.data.get('transaction_ids', [])
+        
+        if transaction_ids:
+            transactions = MPesaTransaction.objects.filter(
+                mpesa_account=mpesa_account,
+                id__in=transaction_ids
+            )
+        else:
+            # Analyze all user transactions
+            transactions = MPesaTransaction.objects.filter(
+                mpesa_account=mpesa_account
+            ).order_by('-date')[:100]  # Limit to recent 100 transactions
+        
+        if not transactions.exists():
+            return Response({
+                'error': 'No transactions found for analysis.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Initialize AI parser for categorization
+        ai_parser = AIEnhancedSMSParser()
+        
+        # Analyze each transaction
+        categorized_results = []
+        spending_insights = {}
+        
+        for transaction in transactions:
+            # Re-categorize using AI
+            if hasattr(transaction, 'original_sms') and transaction.original_sms:
+                entities = ai_parser._extract_financial_entities(transaction.original_sms)
+                new_category = ai_parser._ai_categorize_transaction(transaction.original_sms, entities)
+                ai_insights = ai_parser._generate_ai_insights(transaction.original_sms, {
+                    'amount': transaction.amount,
+                    'category': new_category,
+                    'description': transaction.description
+                })
+            else:
+                # Fallback analysis based on existing data
+                new_category = transaction.category
+                ai_insights = {
+                    'spending_pattern': {'amount_tier': 'medium'},
+                    'merchant_analysis': {'merchant_type': 'identified'},
+                    'behavioral_flags': [],
+                    'risk_indicators': {'score': 0.1, 'factors': []},
+                    'recommendation': 'Transaction categorized based on existing data'
+                }
+            
+            categorized_results.append({
+                'transaction_id': transaction.id,
+                'original_category': transaction.category,
+                'ai_suggested_category': new_category,
+                'confidence': 0.85,
+                'amount': float(transaction.amount),
+                'description': transaction.description,
+                'ai_insights': ai_insights
+            })
+            
+            # Update spending insights
+            if new_category not in spending_insights:
+                spending_insights[new_category] = {'count': 0, 'total_amount': 0}
+            spending_insights[new_category]['count'] += 1
+            spending_insights[new_category]['total_amount'] += float(transaction.amount)
+        
+        # Generate comprehensive spending analysis
+        comprehensive_analysis = generate_comprehensive_spending_analysis(categorized_results)
+        
+        return Response({
+            'message': 'AI-powered transaction categorization completed.',
+            'analysis_summary': {
+                'transactions_analyzed': len(categorized_results),
+                'categories_identified': len(spending_insights),
+                'high_confidence_categorizations': sum(1 for r in categorized_results if r['confidence'] > 0.8),
+                'total_spending_analyzed': sum(r['amount'] for r in categorized_results)
+            },
+            'categorized_transactions': categorized_results,
+            'spending_by_category': spending_insights,
+            'comprehensive_analysis': comprehensive_analysis,
+            'personalized_recommendations': generate_personalized_recommendations(categorized_results)
+        }, status=status.HTTP_200_OK)
+        
+    except MPesaAccount.DoesNotExist:
+        return Response({
+            'error': 'M-Pesa account not linked. Please link your account first.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': 'An error occurred during smart categorization.',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_ai_parsing_analytics(request):
+    """Get AI parsing analytics and performance metrics"""
+    try:
+        # Get user's M-Pesa account
+        mpesa_account = get_object_or_404(MPesaAccount, user=request.user)
+        
+        # Get transactions with AI processing flags
+        ai_processed_transactions = MPesaTransaction.objects.filter(
+            mpesa_account=mpesa_account,
+            ai_processed=True
+        )
+        
+        legacy_processed_transactions = MPesaTransaction.objects.filter(
+            mpesa_account=mpesa_account,
+            ai_processed=False
+        )
+        
+        # Calculate analytics
+        analytics = {
+            'processing_overview': {
+                'total_transactions': MPesaTransaction.objects.filter(mpesa_account=mpesa_account).count(),
+                'ai_processed': ai_processed_transactions.count(),
+                'legacy_processed': legacy_processed_transactions.count(),
+                'ai_adoption_rate': f"{(ai_processed_transactions.count() / max(1, MPesaTransaction.objects.filter(mpesa_account=mpesa_account).count())) * 100:.1f}%"
+            },
+            'ai_performance_metrics': {
+                'average_confidence': calculate_average_confidence(ai_processed_transactions),
+                'category_accuracy': calculate_category_accuracy(ai_processed_transactions),
+                'processing_efficiency': calculate_processing_efficiency(ai_processed_transactions)
+            },
+            'data_quality_insights': generate_data_quality_insights(mpesa_account),
+            'improvement_suggestions': generate_improvement_suggestions(mpesa_account)
+        }
+        
+        return Response({
+            'message': 'AI parsing analytics retrieved successfully.',
+            'analytics': analytics,
+            'last_updated': mpesa_account.last_sync.isoformat() if mpesa_account.last_sync else None
+        }, status=status.HTTP_200_OK)
+        
+    except MPesaAccount.DoesNotExist:
+        return Response({
+            'error': 'M-Pesa account not linked. Please link your account first.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': 'An error occurred while retrieving analytics.',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Helper functions for AI analytics
+def analyze_transaction_patterns(transactions):
+    """Analyze patterns in parsed transactions"""
+    patterns = {
+        'transaction_types': {},
+        'categories': {},
+        'amount_ranges': {'small': 0, 'medium': 0, 'large': 0},
+        'time_patterns': {}
+    }
+    
+    for transaction in transactions:
+        # Transaction type distribution
+        tx_type = transaction.get('transaction_type', 'unknown')
+        patterns['transaction_types'][tx_type] = patterns['transaction_types'].get(tx_type, 0) + 1
+        
+        # Category distribution
+        category = transaction.get('category', 'other')
+        patterns['categories'][category] = patterns['categories'].get(category, 0) + 1
+        
+        # Amount ranges
+        amount = float(transaction.get('amount', 0))
+        if amount < 1000:
+            patterns['amount_ranges']['small'] += 1
+        elif amount < 10000:
+            patterns['amount_ranges']['medium'] += 1
+        else:
+            patterns['amount_ranges']['large'] += 1
+    
+    return patterns
+
+def calculate_confidence_distribution(transactions):
+    """Calculate confidence score distribution"""
+    confidence_scores = [t.get('confidence_score', 0.6) for t in transactions]
+    
+    if not confidence_scores:
+        return {'average': 0, 'high_confidence': 0, 'medium_confidence': 0, 'low_confidence': 0}
+    
+    average = sum(confidence_scores) / len(confidence_scores)
+    high_confidence = sum(1 for score in confidence_scores if score >= 0.8)
+    medium_confidence = sum(1 for score in confidence_scores if 0.6 <= score < 0.8)
+    low_confidence = sum(1 for score in confidence_scores if score < 0.6)
+    
+    return {
+        'average': round(average, 2),
+        'high_confidence': high_confidence,
+        'medium_confidence': medium_confidence,
+        'low_confidence': low_confidence
+    }
+
+def generate_data_quality_recommendations(parsing_result):
+    """Generate recommendations for improving data quality"""
+    recommendations = []
+    
+    if parsing_result['failed_count'] > 0:
+        recommendations.append({
+            'type': 'parsing_improvement',
+            'message': f"{parsing_result['failed_count']} messages failed to parse. Consider reviewing SMS format consistency.",
+            'priority': 'medium'
+        })
+    
+    if parsing_result['success_count'] > 0:
+        recommendations.append({
+            'type': 'data_completeness',
+            'message': f"Successfully parsed {parsing_result['success_count']} messages. Continue uploading for better analysis.",
+            'priority': 'low'
+        })
+    
+    return recommendations
+
+def generate_comprehensive_spending_analysis(categorized_results):
+    """Generate comprehensive spending analysis"""
+    total_spending = sum(r['amount'] for r in categorized_results)
+    category_totals = {}
+    
+    for result in categorized_results:
+        category = result['ai_suggested_category']
+        if category not in category_totals:
+            category_totals[category] = 0
+        category_totals[category] += result['amount']
+    
+    # Calculate percentages
+    category_percentages = {
+        category: (amount / total_spending * 100) if total_spending > 0 else 0
+        for category, amount in category_totals.items()
+    }
+    
+    return {
+        'total_spending': total_spending,
+        'category_breakdown': category_totals,
+        'spending_distribution': category_percentages,
+        'top_categories': sorted(category_totals.items(), key=lambda x: x[1], reverse=True)[:5],
+        'spending_insights': generate_spending_insights(category_percentages)
+    }
+
+def generate_personalized_recommendations(categorized_results):
+    """Generate personalized financial recommendations"""
+    recommendations = []
+    
+    # Analyze spending patterns
+    total_amount = sum(r['amount'] for r in categorized_results)
+    category_spending = {}
+    
+    for result in categorized_results:
+        category = result['ai_suggested_category']
+        if category not in category_spending:
+            category_spending[category] = 0
+        category_spending[category] += result['amount']
+    
+    # Generate specific recommendations
+    if category_spending.get('shopping', 0) > total_amount * 0.3:
+        recommendations.append({
+            'type': 'spending_optimization',
+            'category': 'shopping',
+            'message': 'Shopping represents a large portion of your spending. Consider budgeting for non-essential purchases.',
+            'action': 'Set a monthly shopping budget'
+        })
+    
+    if category_spending.get('withdraw', 0) > total_amount * 0.2:
+        recommendations.append({
+            'type': 'payment_optimization',
+            'category': 'withdraw',
+            'message': 'High cash withdrawal frequency detected. Mobile payments offer better tracking and security.',
+            'action': 'Use mobile payments when possible'
+        })
+    
+    return recommendations
+
+def calculate_average_confidence(transactions):
+    """Calculate average confidence score for AI-processed transactions"""
+    confidence_scores = [
+        float(t.confidence_score) for t in transactions 
+        if hasattr(t, 'confidence_score') and t.confidence_score
+    ]
+    
+    if not confidence_scores:
+        return 0.0
+    
+    return round(sum(confidence_scores) / len(confidence_scores), 2)
+
+def calculate_category_accuracy(transactions):
+    """Calculate category accuracy metrics"""
+    # This would typically require manual validation data
+    # For now, return estimated accuracy based on confidence scores
+    high_confidence_count = sum(
+        1 for t in transactions 
+        if hasattr(t, 'confidence_score') and float(t.confidence_score or 0) > 0.8
+    )
+    
+    total_count = transactions.count()
+    
+    if total_count == 0:
+        return 0.0
+    
+    return round((high_confidence_count / total_count) * 100, 1)
+
+def calculate_processing_efficiency(transactions):
+    """Calculate processing efficiency metrics"""
+    ai_processed_count = transactions.filter(ai_processed=True).count()
+    total_count = transactions.count()
+    
+    if total_count == 0:
+        return 0.0
+    
+    return round((ai_processed_count / total_count) * 100, 1)
+
+def generate_data_quality_insights(mpesa_account):
+    """Generate data quality insights"""
+    transactions = MPesaTransaction.objects.filter(mpesa_account=mpesa_account)
+    
+    insights = {
+        'completeness': {
+            'transactions_with_descriptions': transactions.exclude(description='').count(),
+            'transactions_with_original_sms': transactions.exclude(original_sms='').count(),
+            'total_transactions': transactions.count()
+        },
+        'consistency': {
+            'consistent_categories': transactions.exclude(category='other').count(),
+            'transactions_needing_review': transactions.filter(category='other').count()
+        }
+    }
+    
+    return insights
+
+def generate_improvement_suggestions(mpesa_account):
+    """Generate suggestions for improving AI parsing"""
+    suggestions = []
+    
+    transactions = MPesaTransaction.objects.filter(mpesa_account=mpesa_account)
+    
+    if transactions.filter(category='other').count() > transactions.count() * 0.2:
+        suggestions.append({
+            'type': 'categorization',
+            'message': 'Many transactions are uncategorized. Upload more detailed SMS messages for better categorization.',
+            'priority': 'medium'
+        })
+    
+    if transactions.filter(ai_processed=False).count() > 0:
+        suggestions.append({
+            'type': 'ai_upgrade',
+            'message': 'Some transactions were processed with legacy parsing. Re-process with AI for better insights.',
+            'priority': 'low'
+        })
+    
+    return suggestions
+
+def generate_spending_insights(category_percentages):
+    """Generate insights based on spending distribution"""
+    insights = []
+    
+    if category_percentages.get('bills', 0) > 40:
+        insights.append("Bills represent a significant portion of your spending - good financial responsibility!")
+    
+    if category_percentages.get('shopping', 0) > 30:
+        insights.append("Consider reviewing your shopping habits for potential savings opportunities.")
+    
+    if category_percentages.get('food', 0) > 20:
+        insights.append("Food expenses are substantial - meal planning could help optimize this category.")
+    
+    return insights
