@@ -71,9 +71,7 @@ export const DashboardHeader = ({
           {/* Logo and Title */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">H</span>
-              </div>
+              <img src="/heva-logo.svg" alt="HEVA" className="w-8 h-8" />
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   HEVA Score

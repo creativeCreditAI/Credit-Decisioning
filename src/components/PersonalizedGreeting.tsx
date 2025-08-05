@@ -68,7 +68,7 @@ export const PersonalizedGreeting = ({ role, language }: PersonalizedGreetingPro
   };
 
   return (
-    <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
+    <Card className="bg-gradient-to-r from-black to-gray-900 text-white border-0 shadow-lg">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -83,33 +83,21 @@ export const PersonalizedGreeting = ({ role, language }: PersonalizedGreetingPro
               <h1 className="text-2xl font-bold">
                 {getGreetingText()}, {user?.name || "User"}
               </h1>
-              <p className="text-blue-100 flex items-center gap-2">
+              <p className="text-gray-200 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 {getRoleText()}
               </p>
               {user?.businessName && (
-                <p className="text-blue-100 flex items-center gap-2">
+                <p className="text-gray-200 flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   {user.businessName}
                 </p>
               )}
-              <p className="text-sm text-blue-200 flex items-center gap-2">
+              <p className="text-sm text-gray-300 flex items-center gap-2">
                 <Calendar className="w-3 h-3" />
                 {language === "en" ? "Last login:" : "Muingilio wa mwisho:"} {new Date().toLocaleDateString()}
               </p>
             </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsEditing(!isEditing)}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              {language === "en" ? "Edit Profile" : "Hariri Wasifu"}
-            </Button>
           </div>
         </div>
 
@@ -170,7 +158,7 @@ export const PersonalizedGreeting = ({ role, language }: PersonalizedGreetingPro
               )}
             </div>
             <div className="flex gap-2 mt-4">
-              <Button onClick={handleSave} className="bg-white text-blue-600 hover:bg-white/90">
+              <Button onClick={handleSave} className="bg-white text-gray-900 hover:bg-white/90">
                 <Save className="w-4 h-4 mr-2" />
                 {language === "en" ? "Save Changes" : "Hifadhi Mabadiliko"}
               </Button>

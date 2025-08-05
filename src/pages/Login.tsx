@@ -54,9 +54,7 @@ export const Login = () => {
             </Link>
             
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">H</span>
-              </div>
+              <img src="/heva-logo.svg" alt="HEVA" className="w-10 h-10" />
               <span className="font-bold text-2xl text-gray-900">HEVA</span>
             </div>
             

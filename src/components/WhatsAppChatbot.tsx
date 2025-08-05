@@ -15,7 +15,7 @@ export const WhatsAppChatbot = ({ language = "en" }: WhatsAppChatbotProps) => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50" data-chatbot="whatsapp">
       <Button
         onClick={handleWhatsAppChat}
         size="lg"

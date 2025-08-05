@@ -38,15 +38,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Check if user exists in localStorage (for demo purposes)
+    const savedUser = localStorage.getItem("heva_user");
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        if (userData.email === email) {
+          return userData;
+        }
+      } catch (e) {
+        console.error("Error parsing saved user:", e);
+      }
+    }
+    
     // Mock user data - in real app, this would come from backend
     if (email && password.length >= 6) {
+      // Get business profile data if available
+      const businessProfileData = localStorage.getItem("businessProfile");
+      let businessProfile = null;
+      
+      if (businessProfileData) {
+        try {
+          businessProfile = JSON.parse(businessProfileData);
+        } catch (e) {
+          console.error("Error parsing business profile:", e);
+        }
+      }
+      
       return {
         id: "user-123",
-        name: "Grace Wanjiku",
+        name: businessProfile?.applicantName || businessProfile?.businessName || "Grace Wanjiku",
         email: email,
         role: "user",
-        businessName: "Grace Designs",
-        sector: "Fashion Design",
+        businessName: businessProfile?.businessName || "Grace Designs",
+        sector: businessProfile?.creatorSector || "Fashion Design",
         applicationId: "APP-2024-001"
       };
     }
@@ -80,6 +105,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     try {
+      // Get business profile data from localStorage if available
+      const businessProfileData = localStorage.getItem("businessProfile");
+      let businessProfile = null;
+      
+      if (businessProfileData) {
+        try {
+          businessProfile = JSON.parse(businessProfileData);
+        } catch (e) {
+          console.error("Error parsing business profile:", e);
+        }
+      }
+      
       // In real implementation, this would:
       // 1. Save user data to database
       // 2. Generate unique user ID
@@ -89,7 +126,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const newUser: User = {
         id: `user-${Date.now()}`,
         role: "user",
-        ...userData
+        name: businessProfile?.applicantName || userData.name || "New User",
+        email: businessProfile?.businessEmail || userData.email,
+        businessName: businessProfile?.businessName || userData.businessName,
+        sector: businessProfile?.creatorSector || userData.sector,
+        applicationId: `APP-${Date.now()}`
       };
       
       // Auto-login the newly created user

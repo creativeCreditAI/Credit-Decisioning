@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAdmin } from "@/context/AdminContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AdminSettings from "@/components/AdminSettings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { 
   Users, 
   TrendingUp, 
@@ -23,15 +24,11 @@ import {
   PieChart,
   MapPin,
   MessageSquare,
-  Star,
-  User,
-  FileText,
+
   Share2,
   MessageCircle,
   Phone,
-  Edit,
-  Save,
-  X,
+
   CheckCircle,
   Clock,
   AlertCircle,
@@ -49,6 +46,8 @@ import {
 
 interface AdminDashboardProps {
   language: "en" | "sw";
+  activeTab?: string;
+  editMode?: boolean;
 }
 
 interface AdminProfile {
@@ -91,26 +90,117 @@ interface RiskAlert {
   status: 'active' | 'resolved' | 'investigating';
 }
 
-export const AdminDashboard = ({ language }: AdminDashboardProps) => {
+interface FraudAlert {
+  id: string;
+  userId: string;
+  userName: string;
+  businessName: string;
+  fraudType: 'duplicate' | 'fake_kra' | 'suspicious_receipt' | 'identity_theft';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  flaggedAt: Date;
+  status: 'active' | 'investigating' | 'resolved' | 'false_positive';
+  evidence: string[];
+}
+
+interface ApplicantJourney {
+  userId: string;
+  userName: string;
+  currentStep: 'registration' | 'profile_complete' | 'survey_complete' | 'documents_uploaded' | 'under_review' | 'approved' | 'funded';
+  lastActivity: Date;
+  timeInCurrentStep: number; // days
+  nextStep: string;
+  blockers: string[];
+  engagementScore: number; // 0-100
+}
+
+interface SectorAnalytics {
+  sector: string;
+  applicationRate: number;
+  approvalRate: number;
+  defaultRate: number;
+  avgProcessingTime: number;
+  totalApplications: number;
+  totalApproved: number;
+  totalDefaults: number;
+  avgScore: number;
+  totalFunded: number;
+}
+
+export const AdminDashboard = ({ language, activeTab: propActiveTab = "overview", editMode = false }: AdminDashboardProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { 
+    adminUser, 
+    preferences, 
+    auditLogs, 
+    updatePreferences, 
+    addAuditLog, 
+    saveAssessment, 
+    loadAssessment,
+    sendNotification,
+    pauseSubmissions,
+    resetSystemSettings,
+    deleteAdminAccount,
+    loading: adminLoading,
+    error: adminError 
+  } = useAdmin();
+  
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<string>("30d");
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [isImpersonating, setIsImpersonating] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(propActiveTab);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
-  const [showApplicantModal, setShowApplicantModal] = useState(false);
-  const [adminProfile, setAdminProfile] = useState<AdminProfile>({
-    name: "Admin Manager",
-    email: "admin@heva.co.ke",
-    role: "Senior Credit Analyst",
-    department: "Credit Decisioning",
-    lastLogin: new Date(),
-    isEditing: false
-  });
-  const [faceValueOutput, setFaceValueOutput] = useState("");
-  const [adminNotes, setAdminNotes] = useState("");
-  const [notesVisible, setNotesVisible] = useState(true);
+
+  // Update activeTab when prop changes (for routing)
+  useEffect(() => {
+    setActiveTab(propActiveTab);
+  }, [propActiveTab]);
+
+  // Handle tab changes and navigate to correct routes
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    
+    // Navigate to the correct route based on tab
+    switch (newTab) {
+      case "overview":
+        navigate("/admin/overview");
+        break;
+      case "applicants":
+        navigate("/admin/applicants");
+        break;
+      case "analytics":
+        navigate("/admin/analytics");
+        break;
+      case "alerts":
+        navigate("/admin/risk-alerts");
+        break;
+      case "sectors":
+        navigate("/admin/sectors");
+        break;
+      case "data-tools":
+        navigate("/admin/data-reports");
+        break;
+      case "settings":
+        navigate("/admin/settings");
+        break;
+      default:
+        navigate("/admin/overview");
+    }
+  };
+
+  // Role-based access control from context
+  const userRole = adminUser?.role || "Viewer";
+  const permissions = adminUser?.permissions || {
+    canApprove: false,
+    canViewAnalytics: false,
+    canManageUsers: false,
+    canViewFraudAlerts: false,
+    canAccessDangerZone: false,
+    canModifySettings: false
+  };
+  const { canApprove, canViewAnalytics, canManageUsers, canViewFraudAlerts, canAccessDangerZone, canModifySettings } = permissions;
 
   // 🔌 Placeholder functions for backend calls
   const getUserData = async (userId: string) => {
@@ -173,7 +263,16 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
       { sector: "Digital Media", count: 32, avgScore: 698, fundedAmount: 320000 },
       { sector: "Music Production", count: 28, avgScore: 652, fundedAmount: 280000 },
       { sector: "Visual Arts", count: 25, avgScore: 643, fundedAmount: 125000 },
-      { sector: "Film & Video", count: 17, avgScore: 689, fundedAmount: 75000 }
+      { sector: "Film & Video", count: 17, avgScore: 689, fundedAmount: 75000 },
+      { sector: "Animation & Motion Graphics", count: 23, avgScore: 712, fundedAmount: 185000 },
+      { sector: "Photography", count: 19, avgScore: 668, fundedAmount: 95000 },
+      { sector: "Gaming & Esports", count: 15, avgScore: 701, fundedAmount: 120000 },
+      { sector: "Content Creation", count: 21, avgScore: 685, fundedAmount: 147000 },
+      { sector: "Digital Product Design", count: 18, avgScore: 734, fundedAmount: 162000 },
+      { sector: "Podcasting & Radio Production", count: 12, avgScore: 656, fundedAmount: 84000 },
+      { sector: "Artisan & Traditional Crafts", count: 16, avgScore: 671, fundedAmount: 98000 },
+      { sector: "Cultural Tourism", count: 14, avgScore: 692, fundedAmount: 105000 },
+      { sector: "Comic & Book Publishing", count: 11, avgScore: 647, fundedAmount: 77000 }
     ]
   };
 
@@ -234,6 +333,63 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
       notesVisible: true,
       chatbotMessages: 8,
       whatsappMessages: 6
+    },
+    {
+      id: "APP-2024-004",
+      name: "Michael Karanja",
+      businessName: "AnimateKE Studio",
+      sector: "Animation & Motion Graphics",
+      score: 712,
+      tier: "A",
+      status: "approved",
+      amount: 200000,
+      submittedAt: new Date("2024-01-12"),
+      riskFlags: 0,
+      riskLevel: 'low',
+      documents: ["ID", "Business Registration", "Portfolio", "Bank Statements"],
+      faceValueOutput: "Excellent portfolio showcasing high-quality animation work.",
+      adminNotes: "Approved based on strong portfolio and client testimonials.",
+      notesVisible: true,
+      chatbotMessages: 15,
+      whatsappMessages: 10
+    },
+    {
+      id: "APP-2024-005",
+      name: "Amina Hassan",
+      businessName: "Voices of Kenya Podcast",
+      sector: "Podcasting & Radio Production",
+      score: 656,
+      tier: "B",
+      status: "pending",
+      amount: 80000,
+      submittedAt: new Date("2024-01-11"),
+      riskFlags: 1,
+      riskLevel: 'medium',
+      documents: ["ID", "Business Registration", "M-Pesa Statements"],
+      faceValueOutput: "Growing podcast with good listener engagement.",
+      adminNotes: "Pending verification of listener analytics and revenue projections.",
+      notesVisible: false,
+      chatbotMessages: 7,
+      whatsappMessages: 4
+    },
+    {
+      id: "APP-2024-006",
+      name: "David Mwangi",
+      businessName: "Pixel Perfect Games",
+      sector: "Gaming & Esports",
+      score: 701,
+      tier: "A",
+      status: "approved",
+      amount: 150000,
+      submittedAt: new Date("2024-01-10"),
+      riskFlags: 0,
+      riskLevel: 'low',
+      documents: ["ID", "Business Registration", "Game Portfolio", "Revenue Reports"],
+      faceValueOutput: "Innovative mobile game developer with successful titles.",
+      adminNotes: "Approved for game development and esports tournament funding.",
+      notesVisible: true,
+      chatbotMessages: 11,
+      whatsappMessages: 7
     }
   ];
 
@@ -304,29 +460,10 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
   };
 
   const handleApplicantClick = (applicant: Applicant) => {
-    setSelectedApplicant(applicant);
-    setShowApplicantModal(true);
-    setFaceValueOutput(applicant.faceValueOutput || "");
-    setAdminNotes(applicant.adminNotes || "");
-    setNotesVisible(applicant.notesVisible);
+    navigate(`/admin/applicant/${applicant.id}`);
   };
 
-  const handleSaveFaceValueOutput = () => {
-    if (selectedApplicant) {
-      // 🔌 Placeholder for backend call
-      console.log("Saving face value output for:", selectedApplicant.id);
-      console.log("Content:", faceValueOutput);
-    }
-  };
 
-  const handleSaveAdminNotes = () => {
-    if (selectedApplicant) {
-      // 🔌 Placeholder for backend call
-      console.log("Saving admin notes for:", selectedApplicant.id);
-      console.log("Content:", adminNotes);
-      console.log("Visible to user:", notesVisible);
-    }
-  };
 
   const handleDownloadData = async (userId?: string, format: 'csv' | 'json' = 'csv') => {
     // 🔌 Placeholder for backend call
@@ -352,11 +489,218 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
     console.log("Viewing WhatsApp messages for user:", userId);
   };
 
+  // Mock data for new features
+  const fraudAlerts: FraudAlert[] = [
+    {
+      id: "FRAUD-001",
+      userId: "APP-2024-002",
+      userName: "James Mwenda",
+      businessName: "Mwenda Productions",
+      fraudType: "duplicate",
+      severity: "high",
+      description: "Multiple applications detected with similar business details",
+      flaggedAt: new Date("2024-01-15"),
+      status: "active",
+      evidence: ["Duplicate business registration", "Similar phone numbers", "Identical business description"]
+    },
+    {
+      id: "FRAUD-002",
+      userId: "APP-2024-007",
+      userName: "Sarah Kimani",
+      businessName: "Kimani Photography",
+      fraudType: "fake_kra",
+      severity: "critical",
+      description: "Invalid KRA PIN detected during verification",
+      flaggedAt: new Date("2024-01-14"),
+      status: "investigating",
+      evidence: ["Invalid KRA PIN format", "No matching business records", "Suspicious registration date"]
+    },
+    {
+      id: "FRAUD-003",
+      userId: "APP-2024-008",
+      userName: "Peter Otieno",
+      businessName: "Otieno Digital",
+      fraudType: "suspicious_receipt",
+      severity: "medium",
+      description: "Receipts show inconsistent revenue patterns",
+      flaggedAt: new Date("2024-01-13"),
+      status: "active",
+      evidence: ["Inconsistent transaction dates", "Unusual revenue spikes", "Missing supporting documents"]
+    }
+  ];
+
+  const applicantJourneys: ApplicantJourney[] = [
+    {
+      userId: "APP-2024-001",
+      userName: "Grace Wanjiku",
+      currentStep: "approved",
+      lastActivity: new Date("2024-01-15"),
+      timeInCurrentStep: 2,
+      nextStep: "Fund disbursement",
+      blockers: [],
+      engagementScore: 95
+    },
+    {
+      userId: "APP-2024-002",
+      userName: "James Mwenda",
+      currentStep: "under_review",
+      lastActivity: new Date("2024-01-14"),
+      timeInCurrentStep: 5,
+      nextStep: "Document verification",
+      blockers: ["Pending KRA verification", "Missing bank statements"],
+      engagementScore: 78
+    },
+    {
+      userId: "APP-2024-003",
+      userName: "Mary Njeri",
+      currentStep: "documents_uploaded",
+      lastActivity: new Date("2024-01-12"),
+      timeInCurrentStep: 8,
+      nextStep: "Review process",
+      blockers: ["Awaiting admin review"],
+      engagementScore: 82
+    },
+    {
+      userId: "APP-2024-009",
+      userName: "John Kamau",
+      currentStep: "survey_complete",
+      lastActivity: new Date("2024-01-10"),
+      timeInCurrentStep: 12,
+      nextStep: "Document upload",
+      blockers: ["User needs guidance on document requirements"],
+      engagementScore: 45
+    },
+    {
+      userId: "APP-2024-010",
+      userName: "Alice Wambui",
+      currentStep: "profile_complete",
+      lastActivity: new Date("2024-01-08"),
+      timeInCurrentStep: 15,
+      nextStep: "Complete survey",
+      blockers: ["User hasn't logged in for 7 days"],
+      engagementScore: 30
+    }
+  ];
+
+  const sectorAnalytics: SectorAnalytics[] = [
+    {
+      sector: "Fashion Design",
+      applicationRate: 15.2,
+      approvalRate: 68.5,
+      defaultRate: 2.1,
+      avgProcessingTime: 4.2,
+      totalApplications: 45,
+      totalApproved: 31,
+      totalDefaults: 1,
+      avgScore: 725,
+      totalFunded: 450000
+    },
+    {
+      sector: "Digital Media",
+      applicationRate: 12.8,
+      approvalRate: 71.2,
+      defaultRate: 1.8,
+      avgProcessingTime: 3.8,
+      totalApplications: 32,
+      totalApproved: 23,
+      totalDefaults: 0,
+      avgScore: 698,
+      totalFunded: 320000
+    },
+    {
+      sector: "Animation & Motion Graphics",
+      applicationRate: 8.5,
+      approvalRate: 75.0,
+      defaultRate: 1.2,
+      avgProcessingTime: 5.1,
+      totalApplications: 23,
+      totalApproved: 17,
+      totalDefaults: 0,
+      avgScore: 712,
+      totalFunded: 185000
+    },
+    {
+      sector: "Gaming & Esports",
+      applicationRate: 6.2,
+      approvalRate: 66.7,
+      defaultRate: 3.3,
+      avgProcessingTime: 4.8,
+      totalApplications: 15,
+      totalApproved: 10,
+      totalDefaults: 1,
+      avgScore: 701,
+      totalFunded: 120000
+    },
+    {
+      sector: "Content Creation",
+      applicationRate: 9.1,
+      approvalRate: 72.4,
+      defaultRate: 1.9,
+      avgProcessingTime: 3.5,
+      totalApplications: 21,
+      totalApproved: 15,
+      totalDefaults: 0,
+      avgScore: 685,
+      totalFunded: 147000
+    }
+  ];
+
   const filteredApplicants = applicants.filter(applicant => 
     applicant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     applicant.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     applicant.sector.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getFraudTypeColor = (type: string) => {
+    switch (type) {
+      case "duplicate":
+        return "bg-orange-100 text-orange-800";
+      case "fake_kra":
+        return "bg-red-100 text-red-800";
+      case "suspicious_receipt":
+        return "bg-yellow-100 text-yellow-800";
+      case "identity_theft":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "bg-red-500 text-white";
+      case "high":
+        return "bg-orange-500 text-white";
+      case "medium":
+        return "bg-yellow-500 text-white";
+      case "low":
+        return "bg-blue-500 text-white";
+      default:
+        return "bg-gray-500 text-white";
+    }
+  };
+
+  const getJourneyStepColor = (step: string) => {
+    switch (step) {
+      case "funded":
+        return "bg-green-100 text-green-800";
+      case "approved":
+        return "bg-blue-100 text-blue-800";
+      case "under_review":
+        return "bg-yellow-100 text-yellow-800";
+      case "documents_uploaded":
+        return "bg-purple-100 text-purple-800";
+      case "survey_complete":
+        return "bg-indigo-100 text-indigo-800";
+      case "profile_complete":
+        return "bg-gray-100 text-gray-800";
+      case "registration":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -428,10 +772,51 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {language === "en" ? "Fraud Alerts" : "Tahadhari za Ulaghai"}
+            </CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{fraudAlerts.filter(a => a.status === 'active').length}</div>
+            <p className="text-xs text-muted-foreground">
+              {language === "en" ? "Active alerts" : "Tahadhari za kazi"}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {language === "en" ? "Role:" : "Jukumu:"} {userRole}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {language === "en" ? "Department:" : "Idara:"} {adminUser?.department || "Not Set"}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={canApprove ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-700"}>
+              {canApprove ? (language === "en" ? "Can Approve" : "Anaweza Kuidhinisha") : (language === "en" ? "View Only" : "Tazama Tu")}
+            </Badge>
+            {canManageUsers && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {language === "en" ? "User Management" : "Usimamizi wa Watumiaji"}
+              </Badge>
+            )}
+          </div>
+        </div>
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="overview">
             {language === "en" ? "Overview" : "Muhtasari"}
           </TabsTrigger>
@@ -447,11 +832,23 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
           <TabsTrigger value="alerts">
             {language === "en" ? "Risk Alerts" : "Tahadhari"}
           </TabsTrigger>
+          <TabsTrigger value="fraud" className={!canViewFraudAlerts ? "opacity-50" : ""}>
+            {language === "en" ? "Fraud" : "Ulaghai"}
+          </TabsTrigger>
+          <TabsTrigger value="journey">
+            {language === "en" ? "Journey" : "Safari"}
+          </TabsTrigger>
+          <TabsTrigger value="sector-analytics" className={!canViewAnalytics ? "opacity-50" : ""}>
+            {language === "en" ? "Sector Analytics" : "Uchambuzi wa Sekta"}
+          </TabsTrigger>
           <TabsTrigger value="data-tools">
             {language === "en" ? "Data Tools" : "Zana za Data"}
           </TabsTrigger>
           <TabsTrigger value="chatbot">
             {language === "en" ? "Chatbot" : "Mazungumzo"}
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            {language === "en" ? "Settings" : "Mipangilio"}
           </TabsTrigger>
         </TabsList>
 
@@ -506,10 +903,17 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
                         <Badge className={`${getTierColor(applicant.tier)}`}>
                           {applicant.tier}
                         </Badge>
-                        <Badge variant={getStatusColor(applicant.status) as any}>
+                        <Badge variant={getStatusColor(applicant.status) as "success" | "secondary" | "warning" | "destructive" | "outline"}>
                           {applicant.status}
                         </Badge>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/applicant/${applicant.id}`);
+                          }}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
                       </div>
@@ -550,6 +954,17 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
                     <SelectItem value="Fashion Design">{language === "en" ? "Fashion Design" : "Muundo wa Nguo"}</SelectItem>
                     <SelectItem value="Digital Media">{language === "en" ? "Digital Media" : "Media ya Kidijitali"}</SelectItem>
                     <SelectItem value="Music Production">{language === "en" ? "Music Production" : "Uzalishaji wa Muziki"}</SelectItem>
+                    <SelectItem value="Visual Arts">{language === "en" ? "Visual Arts" : "Sanaa za Kuona"}</SelectItem>
+                    <SelectItem value="Film & Video">{language === "en" ? "Film & Video" : "Filamu na Video"}</SelectItem>
+                    <SelectItem value="Animation & Motion Graphics">{language === "en" ? "Animation & Motion Graphics" : "Uhuishaji na Michoro ya Mwendo"}</SelectItem>
+                    <SelectItem value="Podcasting & Radio Production">{language === "en" ? "Podcasting & Radio Production" : "Uzalishaji wa Podikasti na Redio"}</SelectItem>
+                    <SelectItem value="Photography">{language === "en" ? "Photography" : "Upigaji Picha"}</SelectItem>
+                    <SelectItem value="Comic & Book Publishing">{language === "en" ? "Comic & Book Publishing" : "Uchapishaji wa Vitabu na Katuni"}</SelectItem>
+                    <SelectItem value="Gaming & Esports">{language === "en" ? "Gaming & Esports" : "Michezo na Esports"}</SelectItem>
+                    <SelectItem value="Digital Product Design">{language === "en" ? "Digital Product Design" : "Ubunifu wa Bidhaa za Kidijitali"}</SelectItem>
+                    <SelectItem value="Artisan & Traditional Crafts">{language === "en" ? "Artisan & Traditional Crafts" : "Ufundi wa Jadi na wa Kisasa"}</SelectItem>
+                    <SelectItem value="Cultural Tourism">{language === "en" ? "Cultural Tourism" : "Utalii wa Kitamaduni"}</SelectItem>
+                    <SelectItem value="Content Creation">{language === "en" ? "Content Creation" : "Uundaji wa Maudhui"}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -581,7 +996,7 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
                         <div className="text-sm text-muted-foreground">{applicant.sector}</div>
                       </div>
                       
-                      <Badge variant={getStatusColor(applicant.status) as any}>
+                      <Badge variant={getStatusColor(applicant.status) as "success" | "secondary" | "warning" | "destructive" | "outline"}>
                         {applicant.status}
                       </Badge>
                       
@@ -604,7 +1019,14 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
                           <Phone className="w-4 h-4" />
                           <span className="ml-1 text-xs">{applicant.whatsappMessages}</span>
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/applicant/${applicant.id}`);
+                          }}
+                        >
                           <Eye className="w-4 h-4" />
                       </Button>
                       </div>
@@ -780,7 +1202,11 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
                     <Button variant="outline" size="sm">
                         {language === "en" ? "Investigate" : "Chunguza"}
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/admin/applicant/${alert.userId}`)}
+                    >
                         {language === "en" ? "View Profile" : "Tazama Wasifu"}
                     </Button>
                       {alert.status === 'active' && (
@@ -907,6 +1333,265 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
           </div>
         </TabsContent>
 
+        <TabsContent value="fraud" className="space-y-4">
+          {!canViewFraudAlerts ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {language === "en" ? "Access Restricted" : "Ufikiaji Umepunguzwa"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {language === "en" 
+                    ? "You don't have permission to view fraud alerts. Contact your administrator."
+                    : "Huna ruhusa ya kutazama tahadhari za ulaghai. Wasiliana na msimamizi wako."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    {language === "en" ? "Fraud Detection Alerts" : "Tahadhari za Ugunduzi wa Ulaghai"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {fraudAlerts.map((alert) => (
+                      <div key={alert.id} className="p-4 border rounded-lg">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge className={getFraudTypeColor(alert.fraudType)}>
+                                {alert.fraudType.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                              <Badge className={getSeverityColor(alert.severity)}>
+                                {alert.severity.toUpperCase()}
+                              </Badge>
+                            </div>
+                            <h4 className="font-semibold">{alert.userName}</h4>
+                            <p className="text-sm text-muted-foreground">{alert.businessName}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-muted-foreground">
+                              {alert.flaggedAt.toLocaleDateString()}
+                            </div>
+                            <Badge variant="outline" className="mt-1">
+                              {alert.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <p className="text-sm mb-3">{alert.description}</p>
+                        <div className="space-y-2">
+                          <h5 className="text-sm font-medium">
+                            {language === "en" ? "Evidence:" : "Ushahidi:"}
+                          </h5>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {alert.evidence.map((item, index) => (
+                              <li key={index} className="flex items-center gap-2">
+                                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button size="sm" variant="outline">
+                            {language === "en" ? "Investigate" : "Chunguza"}
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            {language === "en" ? "Mark as False Positive" : "Weka kama Uongo"}
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            {language === "en" ? "View Profile" : "Tazama Wasifu"}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="journey" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                {language === "en" ? "Applicant Journey Tracker" : "Kifuatilia Safari ya Mwombaji"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {applicantJourneys.map((journey) => (
+                  <div key={journey.userId} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold">{journey.userName}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge className={getJourneyStepColor(journey.currentStep)}>
+                            {journey.currentStep.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {journey.timeInCurrentStep} days
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">
+                          {journey.lastActivity.toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="w-16 h-2 bg-gray-200 rounded-full">
+                            <div 
+                              className="h-2 bg-blue-500 rounded-full" 
+                              style={{ width: `${journey.engagementScore}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs">{journey.engagementScore}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm">
+                        <span className="font-medium">
+                          {language === "en" ? "Next Step:" : "Hatua Inayofuata:"}
+                        </span> {journey.nextStep}
+                      </p>
+                      {journey.blockers.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-red-600">
+                            {language === "en" ? "Blockers:" : "Vizuizi:"}
+                          </p>
+                          <ul className="text-sm text-red-600 space-y-1">
+                            {journey.blockers.map((blocker, index) => (
+                              <li key={index} className="flex items-center gap-2">
+                                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                                {blocker}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" variant="outline">
+                        {language === "en" ? "Send Reminder" : "Tuma Kumbusho"}
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        {language === "en" ? "View Profile" : "Tazama Wasifu"}
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        {language === "en" ? "Contact" : "Wasiliana"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sector-analytics" className="space-y-4">
+          {!canViewAnalytics ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {language === "en" ? "Access Restricted" : "Ufikiaji Umepunguzwa"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {language === "en" 
+                    ? "You don't have permission to view sector analytics. Contact your administrator."
+                    : "Huna ruhusa ya kutazama uchambuzi wa sekta. Wasiliana na msimamizi wako."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" />
+                      {language === "en" ? "Sector Performance Overview" : "Muhtasari wa Utendaji wa Sekta"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {sectorAnalytics.map((sector) => (
+                        <div key={sector.sector} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold">{sector.sector}</h4>
+                            <Badge variant="outline">
+                              {sector.totalApplications} applications
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Application Rate</p>
+                              <p className="font-semibold">{sector.applicationRate}%</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Approval Rate</p>
+                              <p className="font-semibold text-green-600">{sector.approvalRate}%</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Default Rate</p>
+                              <p className="font-semibold text-red-600">{sector.defaultRate}%</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Avg Processing</p>
+                              <p className="font-semibold">{sector.avgProcessingTime} days</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t">
+                            <div className="flex justify-between text-sm">
+                              <span>Total Funded: KES {(sector.totalFunded / 1000).toFixed(0)}K</span>
+                              <span>Avg Score: {sector.avgScore}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChartIcon className="w-5 h-5" />
+                      {language === "en" ? "Sector Distribution" : "Usambazaji wa Sekta"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {sectorAnalytics.map((sector) => (
+                        <div key={sector.sector} className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>{sector.sector}</span>
+                            <span>{sector.totalApplications} ({((sector.totalApplications / sectorAnalytics.reduce((sum, s) => sum + s.totalApplications, 0)) * 100).toFixed(1)}%)</span>
+                          </div>
+                          <Progress 
+                            value={(sector.totalApplications / sectorAnalytics.reduce((sum, s) => sum + s.totalApplications, 0)) * 100} 
+                            className="h-2"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
         <TabsContent value="chatbot" className="space-y-4">
           <Card>
             <CardHeader>
@@ -982,175 +1667,24 @@ export const AdminDashboard = ({ language }: AdminDashboardProps) => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <AdminSettings 
+            language={language} 
+            preferences={preferences}
+            onUpdatePreferences={updatePreferences}
+            canModifySettings={canModifySettings}
+            onPauseSubmissions={pauseSubmissions}
+            onResetSettings={resetSystemSettings}
+            onDeleteAccount={deleteAdminAccount}
+            adminUser={adminUser}
+            auditLogs={auditLogs}
+            loading={adminLoading}
+          />
+        </TabsContent>
       </Tabs>
 
-      {/* Applicant Detail Modal */}
-      {showApplicantModal && selectedApplicant && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">
-                {language === "en" ? "Applicant Details" : "Maelezo ya Mwombaji"} - {selectedApplicant.name}
-              </h2>
-              <Button variant="outline" size="sm" onClick={() => setShowApplicantModal(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Applicant Information */}
-                <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      {language === "en" ? "Basic Information" : "Maelezo ya Msingi"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">{language === "en" ? "Name:" : "Jina:"}</span>
-                        <p>{selectedApplicant.name}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">{language === "en" ? "Business:" : "Biashara:"}</span>
-                        <p>{selectedApplicant.businessName}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">{language === "en" ? "Sector:" : "Sekta:"}</span>
-                        <p>{selectedApplicant.sector}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">{language === "en" ? "Score:" : "Alama:"}</span>
-                        <p>{selectedApplicant.score}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">{language === "en" ? "Tier:" : "Kiwango:"}</span>
-                        <Badge className={getTierColor(selectedApplicant.tier)}>
-                          {selectedApplicant.tier}
-                        </Badge>
-                      </div>
-                      <div>
-                        <span className="font-medium">{language === "en" ? "Status:" : "Hali:"}</span>
-                        <Badge variant={getStatusColor(selectedApplicant.status) as any}>
-                          {selectedApplicant.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      {language === "en" ? "Documents" : "Nyaraka"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {selectedApplicant.documents.map((doc, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <span className="text-sm">{doc}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {language === "en" ? "Uploaded" : "Imepakiwa"}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Face Value Output & Admin Notes */}
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Star className="w-5 h-5" />
-                      {language === "en" ? "Face Value Output" : "Matokeo ya Thamani ya Uso"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Textarea
-                      placeholder={language === "en" ? "Enter face value output..." : "Ingiza matokeo ya thamani ya uso..."}
-                      value={faceValueOutput}
-                      onChange={(e) => setFaceValueOutput(e.target.value)}
-                      rows={4}
-                    />
-                    <Button onClick={handleSaveFaceValueOutput} className="w-full">
-                      <Save className="w-4 h-4 mr-2" />
-                      {language === "en" ? "Save Face Value Output" : "Hifadhi Matokeo ya Thamani ya Uso"}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageSquare className="w-5 h-5" />
-                      {language === "en" ? "Admin Notes & Feedback" : "Maelezo ya Msimamizi na Maoni"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Textarea
-                      placeholder={language === "en" ? "Add admin notes..." : "Ongeza maelezo ya msimamizi..."}
-                      value={adminNotes}
-                      onChange={(e) => setAdminNotes(e.target.value)}
-                      rows={4}
-                    />
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={notesVisible}
-                        onCheckedChange={setNotesVisible}
-                      />
-                      <Label className="text-sm">
-                        {language === "en" ? "Visible to User" : "Inaonekana kwa Mtumiaji"}
-                      </Label>
-                    </div>
-                    <Button onClick={handleSaveAdminNotes} className="w-full">
-                      <Save className="w-4 h-4 mr-2" />
-                      {language === "en" ? "Save Notes" : "Hifadhi Maelezo"}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="w-5 h-5" />
-                      {language === "en" ? "Communication History" : "Historia ya Mawasiliano"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewChatbotMessages(selectedApplicant.id)}
-                        className="flex-1"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        {language === "en" ? "Chatbot" : "Chatbot"} ({selectedApplicant.chatbotMessages})
-                    </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewWhatsAppMessages(selectedApplicant.id)}
-                        className="flex-1"
-                      >
-                        <Phone className="w-4 h-4 mr-2" />
-                        {language === "en" ? "WhatsApp" : "WhatsApp"} ({selectedApplicant.whatsappMessages})
-                    </Button>
-              </div>
-            </CardContent>
-          </Card>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

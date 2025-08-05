@@ -85,6 +85,78 @@ const sectors: Sector[] = [
     icon: "🖼️",
     description: "Painting, sculpture, crafts, photography",
     descriptionSwahili: "Uchoraji, ufinyanzi, ufundi, picha"
+  },
+  {
+    id: "animation",
+    name: "Animation & Motion Graphics",
+    nameSwahili: "Uhuishaji na Michoro ya Mwendo",
+    icon: "🎞️",
+    description: "2D/3D animation, motion graphics, visual effects",
+    descriptionSwahili: "Uhuishaji wa 2D/3D, michoro ya mwendo, athari za kuona"
+  },
+  {
+    id: "podcasting",
+    name: "Podcasting & Radio Production",
+    nameSwahili: "Uzalishaji wa Podikasti na Redio",
+    icon: "🎙️",
+    description: "Audio content, podcast production, radio shows",
+    descriptionSwahili: "Maudhui ya sauti, uzalishaji wa podikasti, vipindi vya redio"
+  },
+  {
+    id: "photography",
+    name: "Photography",
+    nameSwahili: "Upigaji Picha",
+    icon: "📸",
+    description: "Professional photography, photo journalism, commercial photography",
+    descriptionSwahili: "Upigaji picha wa kitaaluma, uandishi wa picha, upigaji picha wa kibiashara"
+  },
+  {
+    id: "publishing",
+    name: "Comic & Book Publishing",
+    nameSwahili: "Uchapishaji wa Vitabu na Katuni",
+    icon: "📖",
+    description: "Comic books, graphic novels, digital publishing",
+    descriptionSwahili: "Vitabu vya katuni, riwaya za kielelezo, uchapishaji wa kidijitali"
+  },
+  {
+    id: "gaming",
+    name: "Gaming & Esports",
+    nameSwahili: "Michezo na Esports",
+    icon: "🎮",
+    description: "Game development, esports, gaming content creation",
+    descriptionSwahili: "Maendeleo ya michezo, esports, uundaji wa maudhui ya michezo"
+  },
+  {
+    id: "product-design",
+    name: "Digital Product Design",
+    nameSwahili: "Ubunifu wa Bidhaa za Kidijitali",
+    icon: "💻",
+    description: "UI/UX design, app design, digital product development",
+    descriptionSwahili: "Muundo wa UI/UX, muundo wa programu, maendeleo ya bidhaa za kidijitali"
+  },
+  {
+    id: "traditional-crafts",
+    name: "Artisan & Traditional Crafts",
+    nameSwahili: "Ufundi wa Jadi na wa Kisasa",
+    icon: "🪴",
+    description: "Handmade crafts, traditional art, artisan products",
+    descriptionSwahili: "Ufundi wa mikono, sanaa za jadi, bidhaa za ufundi"
+  },
+  {
+    id: "cultural-tourism",
+    name: "Cultural Tourism",
+    nameSwahili: "Utalii wa Kitamaduni",
+    icon: "🗺️",
+    description: "Cultural tours, heritage tourism, experiential travel",
+    descriptionSwahili: "Ziara za kitamaduni, utalii wa urithi, safari za uzoefu"
+  },
+  {
+    id: "content-creation",
+    name: "Content Creation",
+    nameSwahili: "Uundaji wa Maudhui",
+    icon: "🎬",
+    description: "Social media content, influencer marketing, digital storytelling",
+    descriptionSwahili: "Maudhui ya mitandao ya kijamii, uuzaji wa kivutio, hadithi za kidijitali"
   }
 ];
 

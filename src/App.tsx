@@ -12,11 +12,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ChatbotProvider } from "@/context/ChatbotContext";
+import { UserSettingsProvider } from "@/context/UserSettingsContext";
+import { AdminProvider } from "@/context/AdminContext";
 import { LandingPage } from "./pages/LandingPage";
 import { Login } from "./pages/Login";
 import { ProfileSettings } from "./pages/ProfileSettings";
 import { ProfilePreferences } from "./pages/ProfilePreferences";
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProfilePage from "./pages/ProfilePage";
 import { EligibilityCheckForm } from "@/components/EligibilityCheckForm";
@@ -27,6 +28,11 @@ import { ChatbotWidget } from "@/components/ChatbotWidget";
 import { UserDashboard } from "@/components/UserDashboard";
 import { AdminDashboardLayout } from "@/components/AdminDashboardLayout";
 import { BusinessSurvey } from "@/components/BusinessSurvey";
+import { UserSettingsPanel } from "@/components/UserSettingsPanel";
+import { FeedbackForm } from "@/components/FeedbackForm";
+import { ProfileCompletionPage } from "@/components/ProfileCompletionPage";
+import ApplicantProfile from "@/components/ApplicantProfile";
+import { AdminProfileSettings } from "@/components/AdminProfileSettings";
 
 const queryClient = new QueryClient();
 
@@ -127,20 +133,36 @@ const AppRoutes = () => {
           } 
         />
         <Route 
-          path="/profile" 
+          path="/profile/complete" 
           element={
             <ProtectedRoute requiredRole="user">
               <ProfilePage />
             </ProtectedRoute>
           } 
         />
-        
-        {/* Protected Admin Routes */}
         <Route 
-          path="/admin/dashboard" 
+          path="/settings" 
+          element={
+            <ProtectedRoute requiredRole="user">
+              <UserSettingsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/feedback" 
+          element={
+            <ProtectedRoute requiredRole="user">
+              <FeedbackPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Admin Routes */}
+        <Route 
+          path="/admin/overview" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminDashboardLayout activeTab="overview" />
             </ProtectedRoute>
           } 
         />
@@ -148,7 +170,7 @@ const AppRoutes = () => {
           path="/admin/applicants" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminDashboardLayout activeTab="applicants" />
             </ProtectedRoute>
           } 
         />
@@ -156,15 +178,15 @@ const AppRoutes = () => {
           path="/admin/analytics" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminDashboardLayout activeTab="analytics" />
             </ProtectedRoute>
           } 
         />
         <Route 
-          path="/admin/alerts" 
+          path="/admin/risk-alerts" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminDashboardLayout activeTab="alerts" />
             </ProtectedRoute>
           } 
         />
@@ -172,15 +194,15 @@ const AppRoutes = () => {
           path="/admin/sectors" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminDashboardLayout activeTab="sectors" />
             </ProtectedRoute>
           } 
         />
         <Route 
-          path="/admin/reports" 
+          path="/admin/data-reports" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminDashboardLayout activeTab="data-tools" />
             </ProtectedRoute>
           } 
         />
@@ -188,7 +210,39 @@ const AppRoutes = () => {
           path="/admin/profile" 
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboardLayout />
+              <AdminProfileSettings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/settings" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminDashboardLayout activeTab="settings" />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/profile/edit" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminProfileSettings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/applicant/:id" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <ApplicantProfile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Navigate to="/admin/overview" replace />
             </ProtectedRoute>
           } 
         />
@@ -204,13 +258,17 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <ChatbotProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </TooltipProvider>
-      </ChatbotProvider>
+      <UserSettingsProvider>
+        <ChatbotProvider>
+          <AdminProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </TooltipProvider>
+          </AdminProvider>
+        </ChatbotProvider>
+      </UserSettingsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
@@ -296,6 +354,40 @@ const AdminLogin = () => {
           </form>
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// User Settings Page Component
+const UserSettingsPage = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">User Settings</h1>
+          <p className="text-gray-600 mt-2">
+            Manage your preferences and application settings
+          </p>
+        </div>
+        <UserSettingsPanel />
+      </div>
+    </div>
+  );
+};
+
+// Feedback Page Component
+const FeedbackPage = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Feedback</h1>
+          <p className="text-gray-600 mt-2">
+            Share your experience and help us improve HEVA
+          </p>
+        </div>
+        <FeedbackForm />
+      </div>
     </div>
   );
 };

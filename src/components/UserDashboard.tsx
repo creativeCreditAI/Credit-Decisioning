@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useUserSettings } from "@/context/UserSettingsContext";
 import { RoleBasedNavbar } from "@/components/RoleBasedNavbar";
 import { PersonalizedGreeting } from "@/components/PersonalizedGreeting";
 import { CreditScoreDisplay } from "@/components/CreditScoreDisplay";
@@ -12,6 +13,8 @@ import { EligibilitySieve } from "@/components/EligibilitySieve";
 import { RiskFlags } from "@/components/RiskFlags";
 import { NarrativeRationale } from "@/components/NarrativeRationale";
 import { WhatsAppChatbot } from "@/components/WhatsAppChatbot";
+import { FinancialProjectionGraph } from "@/components/FinancialProjectionGraph";
+import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +35,8 @@ import {
 
 export const UserDashboard = () => {
   const { user } = useAuth();
-  const [language, setLanguage] = useState<"en" | "sw">("en");
+  const { currentLanguage, currentFundingType } = useUserSettings();
+  const [language, setLanguage] = useState<"en" | "sw">(currentLanguage);
   const [selectedSectors, setSelectedSectors] = useState<string[]>(["design"]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showEligibility, setShowEligibility] = useState(false);
@@ -200,7 +204,7 @@ export const UserDashboard = () => {
 
   if (showEligibility) {
     return (
-      <div className="min-h-screen bg-neutral-light">
+      <div className="min-h-screen bg-white">
         <RoleBasedNavbar role="user" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <PersonalizedGreeting role="user" language={language} />
@@ -216,18 +220,30 @@ export const UserDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-light">
+    <div className="min-h-screen bg-white">
       <RoleBasedNavbar role="user" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <PersonalizedGreeting role="user" language={language} />
 
-        {/* Quick Actions */}
-        <div className="flex justify-end items-center mb-6">
+        {/* Funding Type Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {currentFundingType === "grant" && "Grant Application Tracker"}
+              {currentFundingType === "loan" && "Loan Application Dashboard"}
+              {currentFundingType === "investment" && "Investment Readiness Tools"}
+            </h2>
+            <p className="text-gray-600">
+              {currentFundingType === "grant" && "Track your grant application progress and utilization"}
+              {currentFundingType === "loan" && "Monitor your loan application and repayment planning"}
+              {currentFundingType === "investment" && "Prepare for investment opportunities and growth"}
+            </p>
+          </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.location.href = "/dashboard/profile"}
+            onClick={() => window.location.href = "/profile/complete"}
           >
             {language === "en" ? "Complete Profile" : "Kamilisha Wasifu"}
           </Button>
@@ -344,15 +360,27 @@ export const UserDashboard = () => {
                     </div>
                   </div>
 
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => window.location.href = "/profile/settings"}
+                  >
                     {language === "en" ? "Edit Profile" : "Hariri Wasifu"}
                   </Button>
                 </div>
               </Card>
             </div>
 
+            {/* Surveys Section (Business Creditworthiness) */}
+            <Card className="p-6 mt-8" data-section="creditworthiness-survey">
+              <h2 className="text-xl font-bold mb-4">Business Creditworthiness Survey</h2>
+              {/* The actual survey component or content goes here */}
+              <div className="text-muted-foreground">[Business Creditworthiness Survey content here]</div>
+            </Card>
+
             {/* Application Progress */}
-            <Card className="p-6">
+            <Card className="p-6" data-section="progress">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">
                   {language === "en" ? "Application Progress" : "Maendeleo ya Ombi"}
@@ -443,6 +471,9 @@ export const UserDashboard = () => {
               onActionClick={handleActionClick}
             />
 
+            {/* Financial Projection Graph */}
+            <FinancialProjectionGraph />
+            
             {/* Recent Activity */}
             <RecentActivity language={language} />
             
@@ -508,6 +539,9 @@ export const UserDashboard = () => {
 
       {/* WhatsApp Chatbot - Fixed Bottom Right */}
       <WhatsAppChatbot language={language} />
+      
+      {/* Voice Assistant */}
+      <VoiceAssistant />
     </div>
   );
 }; 

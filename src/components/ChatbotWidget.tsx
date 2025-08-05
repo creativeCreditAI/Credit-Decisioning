@@ -117,7 +117,7 @@ export const ChatbotWidget = ({
   }, [isOpen]);
 
   return (
-    <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
+    <div className={`fixed bottom-4 left-4 z-50 ${className}`}>
       {/* Chat Window */}
       {isOpen && (
         <Card className="w-80 h-96 mb-4 shadow-xl border-2">

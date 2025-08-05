@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,27 +13,32 @@ import {
   ArrowLeft, 
   User, 
   Mail, 
-  Building2, 
-  MapPin,
+  Building2,
   CheckCircle,
   AlertCircle,
   Eye,
   EyeOff,
   Lock,
-  Shield
+  Shield,
+  Key
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useUserSettings } from "@/context/UserSettingsContext";
-import { Navbar } from "@/components/Navbar";
+import { RoleBasedNavbar } from "./RoleBasedNavbar";
 
-export const ProfileSettings = () => {
+export const AdminProfileSettings = () => {
   const { user, updateUser } = useAuth();
-  const { updateSettings } = useUserSettings();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
-  // Password change state
+  // Profile form state
+  const [profileData, setProfileData] = useState({
+    fullName: user?.name || "",
+    email: user?.email || "",
+    role: user?.role || "admin"
+  });
+  
+  // Password management state
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -47,43 +51,25 @@ export const ProfileSettings = () => {
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    businessName: user?.businessName || "",
-    sector: user?.sector || "",
-    location: "",
-    phone: "",
-    bio: ""
-  });
+  const [hasPassword, setHasPassword] = useState(true); // Assume admin has password set
 
-  const sectors = [
-    "Design & Creative Services",
-    "Fashion & Apparel", 
-    "Music & Audio",
-    "Video & Film",
-    "Photography",
-    "Writing & Content",
-    "Tech & Digital",
-    "Food & Culinary",
-    "Visual Arts",
-    "Animation & Motion Graphics",
-    "Podcasting & Radio Production",
-    "Comic & Book Publishing",
-    "Gaming & Esports",
-    "Digital Product Design",
-    "Artisan & Traditional Crafts",
-    "Cultural Tourism",
-    "Content Creation",
-    "Other Creative"
+  const roleOptions = [
+    { value: "admin", label: "Administrator" },
+    { value: "superadmin", label: "Super Administrator" },
+    { value: "manager", label: "Manager" },
+    { value: "reviewer", label: "Reviewer" },
+    { value: "analyst", label: "Analyst" }
   ];
 
-  const handleFieldChange = (field: string, value: string) => {
-    setFormData(prev => ({
+  const handleProfileChange = (field: string, value: string) => {
+    setProfileData(prev => ({
       ...prev,
       [field]: value
     }));
+    // Clear message when user starts typing
+    if (message) {
+      setMessage(null);
+    }
   };
 
   const handlePasswordChange = (field: string, value: string) => {
@@ -104,6 +90,11 @@ export const ProfileSettings = () => {
     }));
   };
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const validatePasswordStrength = (password: string) => {
     const minLength = password.length >= 8;
     const hasUpperCase = /[A-Z]/.test(password);
@@ -121,14 +112,57 @@ export const ProfileSettings = () => {
     };
   };
 
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage(null);
+    
+    try {
+      // Validate required fields
+      if (!profileData.fullName.trim()) {
+        setMessage({ type: 'error', text: 'Full name is required.' });
+        return;
+      }
+      
+      if (!profileData.email.trim()) {
+        setMessage({ type: 'error', text: 'Email address is required.' });
+        return;
+      }
+      
+      if (!validateEmail(profileData.email)) {
+        setMessage({ type: 'error', text: 'Please enter a valid email address.' });
+        return;
+      }
+      
+      // 🔌 Placeholder for backend call
+      console.log("Updating admin profile:", profileData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update local user data
+      updateUser({
+        name: profileData.fullName,
+        email: profileData.email,
+        role: profileData.role as "admin" | "superadmin"
+      });
+      
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsChangingPassword(true);
     setPasswordMessage(null);
     
     try {
-      // Validate current password is not empty
-      if (!passwordData.currentPassword) {
+      // Validate current password is not empty (if changing password)
+      if (hasPassword && !passwordData.currentPassword) {
         setPasswordMessage({ type: 'error', text: 'Current password is required.' });
         return;
       }
@@ -147,21 +181,27 @@ export const ProfileSettings = () => {
       }
       
       // 🔌 Placeholder for backend call - Verify current password and update
-      console.log("Changing password:", {
-        currentPassword: "***HASHED_CURRENT***",
-        newPassword: "***HASHED_NEW***"
+      console.log("Changing admin password:", {
+        currentPassword: hasPassword ? "***HASHED_CURRENT***" : "N/A",
+        newPassword: "***HASHED_NEW***",
+        isInitialSetup: !hasPassword
       });
       
       // Simulate API call for password verification and update
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // 🔌 Backend integration: 
-      // 1. Hash current password and verify against stored hash
+      // 1. Hash current password and verify against stored hash (if changing)
       // 2. Hash new password using bcrypt or similar
       // 3. Update password in database
       // 4. Invalidate existing sessions if needed
       
-      setPasswordMessage({ type: 'success', text: 'Password updated successfully!' });
+      setPasswordMessage({ type: 'success', text: hasPassword ? 'Password updated successfully!' : 'Password set successfully!' });
+      
+      // Update hasPassword state if this was initial setup
+      if (!hasPassword) {
+        setHasPassword(true);
+      }
       
       // Clear form
       setPasswordData({
@@ -177,55 +217,24 @@ export const ProfileSettings = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
-    
-    try {
-      // 🔌 Placeholder for backend call
-      console.log("Updating profile settings:", formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update local user data
-      updateUser({
-        name: formData.name,
-        email: formData.email,
-        businessName: formData.businessName,
-        sector: formData.sector
-      });
-      
-      // Update settings to trigger UI refresh
-      updateSettings({});
-      
-      setMessage({ type: 'success', text: 'Profile settings updated successfully!' });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile settings. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <RoleBasedNavbar role="admin" />
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/admin/overview")}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
           
-          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Profile Settings</h1>
           <p className="text-gray-600 mt-2">
-            Manage your account information and preferences
+            Manage your admin account information and security settings
           </p>
         </div>
 
@@ -239,25 +248,20 @@ export const ProfileSettings = () => {
               <CardContent className="text-center">
                 <Avatar className="w-24 h-24 mx-auto mb-4">
                   <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="text-2xl">
-                    {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
+                  <AvatarFallback className="text-2xl bg-blue-100 text-blue-600">
+                    {user?.name?.split(" ").map(n => n[0]).join("") || "A"}
                   </AvatarFallback>
                 </Avatar>
                 
                 <h3 className="font-semibold text-lg">{user?.name}</h3>
                 <p className="text-gray-600 text-sm">{user?.email}</p>
                 
-                {user?.businessName && (
-                  <div className="mt-3">
-                    <Badge variant="secondary">{user.businessName}</Badge>
-                  </div>
-                )}
-                
-                {user?.sector && (
-                  <div className="mt-2">
-                    <Badge variant="outline">{user.sector}</Badge>
-                  </div>
-                )}
+                <div className="mt-3">
+                  <Badge variant="default" className="bg-blue-600">
+                    <Shield className="w-3 h-3 mr-1" />
+                    {profileData.role}
+                  </Badge>
+                </div>
                 
                 <div className="mt-6 space-y-3">
                   <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
@@ -268,18 +272,23 @@ export const ProfileSettings = () => {
                     <CheckCircle className="w-4 h-4 text-green-600" />
                     <span>Email Verified</span>
                   </div>
+                  <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Admin Access</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Settings Form */}
+          {/* Settings Forms */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Profile Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Account Information</CardTitle>
+                <CardTitle>Profile Information</CardTitle>
                 <CardDescription>
-                  Update your personal and business information
+                  Update your personal and role information
                 </CardDescription>
               </CardHeader>
               
@@ -297,17 +306,17 @@ export const ProfileSettings = () => {
                   </Alert>
                 )}
                 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="name" className="flex items-center gap-2">
+                      <Label htmlFor="fullName" className="flex items-center gap-2">
                         <User className="w-4 h-4" />
-                        Full Name
+                        Full Name *
                       </Label>
                       <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => handleFieldChange("name", e.target.value)}
+                        id="fullName"
+                        value={profileData.fullName}
+                        onChange={(e) => handleProfileChange("fullName", e.target.value)}
                         placeholder="Enter your full name"
                         required
                       />
@@ -316,91 +325,46 @@ export const ProfileSettings = () => {
                     <div>
                       <Label htmlFor="email" className="flex items-center gap-2">
                         <Mail className="w-4 h-4" />
-                        Email Address
+                        Email Address *
                       </Label>
                       <Input
                         id="email"
                         type="email"
-                        value={formData.email}
-                        onChange={(e) => handleFieldChange("email", e.target.value)}
-                        placeholder="Enter your email"
+                        value={profileData.email}
+                        onChange={(e) => handleProfileChange("email", e.target.value)}
+                        placeholder="Enter your email address"
                         required
                       />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label htmlFor="businessName" className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        Business Name
-                      </Label>
-                      <Input
-                        id="businessName"
-                        value={formData.businessName}
-                        onChange={(e) => handleFieldChange("businessName", e.target.value)}
-                        placeholder="Enter your business name"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="sector">Business Sector</Label>
-                      <Select value={formData.sector} onValueChange={(value) => handleFieldChange("sector", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your sector" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sectors.map((sector) => (
-                            <SelectItem key={sector} value={sector}>
-                              {sector}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label htmlFor="location" className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Location
-                      </Label>
-                      <Input
-                        id="location"
-                        value={formData.location}
-                        onChange={(e) => handleFieldChange("location", e.target.value)}
-                        placeholder="Enter your location"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => handleFieldChange("phone", e.target.value)}
-                        placeholder="Enter your phone number"
-                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This will be used as your login username
+                      </p>
                     </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      value={formData.bio}
-                      onChange={(e) => handleFieldChange("bio", e.target.value)}
-                      placeholder="Tell us about yourself and your business..."
-                      rows={4}
-                    />
+                    <Label htmlFor="role" className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      Role in the Company *
+                    </Label>
+                    <Select value={profileData.role} onValueChange={(value) => handleProfileChange("role", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roleOptions.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex justify-end space-x-4">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => navigate("/admin/overview")}
                     >
                       Cancel
                     </Button>
@@ -422,17 +386,17 @@ export const ProfileSettings = () => {
               </CardContent>
             </Card>
 
-            {/* Change Password Section */}
+            {/* Password Management */}
             <Card className="border-blue-200 bg-blue-50/50">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Lock className="w-5 h-5 text-blue-600" />
+                    <Key className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Change Password</CardTitle>
+                    <CardTitle className="text-lg">Password Management</CardTitle>
                     <CardDescription>
-                      Update your account password securely
+                      {hasPassword ? "Change your account password" : "Set up your account password"}
                     </CardDescription>
                   </div>
                 </div>
@@ -453,41 +417,43 @@ export const ProfileSettings = () => {
                 )}
                 
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="currentPassword" className="flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      Current Password *
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="currentPassword"
-                        type={showPasswords.current ? "text" : "password"}
-                        value={passwordData.currentPassword}
-                        onChange={(e) => handlePasswordChange("currentPassword", e.target.value)}
-                        placeholder="Enter your current password"
-                        required
-                        className="pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                        onClick={() => togglePasswordVisibility('current')}
-                      >
-                        {showPasswords.current ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
+                  {hasPassword && (
+                    <div>
+                      <Label htmlFor="currentPassword" className="flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Current Password *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="currentPassword"
+                          type={showPasswords.current ? "text" : "password"}
+                          value={passwordData.currentPassword}
+                          onChange={(e) => handlePasswordChange("currentPassword", e.target.value)}
+                          placeholder="Enter your current password"
+                          required
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                          onClick={() => togglePasswordVisibility('current')}
+                        >
+                          {showPasswords.current ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
                   <div>
                     <Label htmlFor="newPassword" className="flex items-center gap-2">
                       <Lock className="w-4 h-4" />
-                      New Password *
+                      {hasPassword ? "New Password" : "Set Password"} *
                     </Label>
                     <div className="relative">
                       <Input
@@ -495,7 +461,7 @@ export const ProfileSettings = () => {
                         type={showPasswords.new ? "text" : "password"}
                         value={passwordData.newPassword}
                         onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
-                        placeholder="Enter your new password"
+                        placeholder={hasPassword ? "Enter your new password" : "Enter your password"}
                         required
                         className="pr-10"
                       />
@@ -541,7 +507,7 @@ export const ProfileSettings = () => {
                   <div>
                     <Label htmlFor="confirmNewPassword" className="flex items-center gap-2">
                       <Lock className="w-4 h-4" />
-                      Confirm New Password *
+                      Confirm {hasPassword ? "New " : ""}Password *
                     </Label>
                     <div className="relative">
                       <Input
@@ -549,7 +515,7 @@ export const ProfileSettings = () => {
                         type={showPasswords.confirm ? "text" : "password"}
                         value={passwordData.confirmNewPassword}
                         onChange={(e) => handlePasswordChange("confirmNewPassword", e.target.value)}
-                        placeholder="Confirm your new password"
+                        placeholder={hasPassword ? "Confirm your new password" : "Confirm your password"}
                         required
                         className="pr-10"
                       />
@@ -589,13 +555,16 @@ export const ProfileSettings = () => {
                   <div className="flex justify-end pt-4">
                     <Button 
                       type="submit" 
-                      disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmNewPassword}
+                      disabled={isChangingPassword || 
+                        (hasPassword && !passwordData.currentPassword) || 
+                        !passwordData.newPassword || 
+                        !passwordData.confirmNewPassword}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       {isChangingPassword ? (
                         <div className="flex items-center gap-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Updating Password...
+                          {hasPassword ? "Updating Password..." : "Setting Password..."}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -613,4 +582,4 @@ export const ProfileSettings = () => {
       </div>
     </div>
   );
-}; 
+};

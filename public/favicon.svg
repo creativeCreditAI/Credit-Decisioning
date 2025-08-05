@@ -1,0 +1,15 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Black square outline -->
+  <rect x="1" y="1" width="30" height="30" stroke="black" stroke-width="2" fill="white"/>
+  
+  <!-- Vertical dividing line -->
+  <line x1="16" y1="1" x2="16" y2="31" stroke="black" stroke-width="2"/>
+  
+  <!-- Left panel: H and V -->
+  <text x="8" y="12" fill="black" font-family="Arial, sans-serif" font-size="8" font-weight="bold">H</text>
+  <text x="8" y="24" fill="black" font-family="Arial, sans-serif" font-size="8" font-weight="bold">V</text>
+  
+  <!-- Right panel: E and inverted V (Λ) -->
+  <text x="20" y="12" fill="black" font-family="Arial, sans-serif" font-size="8" font-weight="bold">E</text>
+  <text x="20" y="24" fill="black" font-family="Arial, sans-serif" font-size="8" font-weight="bold">Λ</text>
+</svg> 

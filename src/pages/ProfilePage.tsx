@@ -218,7 +218,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-light">
+    <div className="min-h-screen bg-white">
       <Navbar />
               <DashboardHeader 
           user={{

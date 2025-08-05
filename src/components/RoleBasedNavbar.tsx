@@ -45,21 +45,48 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
     return location.pathname === path;
   };
 
+  const handleNavClick = (href: string) => {
+    if (href === "#chatbot") {
+      // Scroll to WhatsApp chatbot
+      const chatbotElement = document.querySelector('[data-chatbot="whatsapp"]');
+      if (chatbotElement) {
+        chatbotElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else if (href === "#progress") {
+      // Scroll to progress section in dashboard
+      const progressElement = document.querySelector('[data-section="progress"]');
+      if (progressElement) {
+        progressElement.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // If not on dashboard, navigate to dashboard first
+        navigate("/dashboard");
+        // Then scroll after a short delay
+        setTimeout(() => {
+          const progressElement = document.querySelector('[data-section="progress"]');
+          if (progressElement) {
+            progressElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 500);
+      }
+    } else {
+      navigate(href);
+    }
+  };
+
   const userNavLinks = [
     { href: "/dashboard", label: "Home", icon: Home },
-    { href: "/dashboard/progress", label: "Application Progress", icon: FileText },
-    { href: "/dashboard/feedback", label: "Feedback", icon: MessageSquare },
-    { href: "/dashboard/chatbot", label: "Chatbot", icon: MessageCircle },
-    { href: "/dashboard/profile", label: "Profile", icon: User },
+    { href: "#progress", label: "Application Progress", icon: FileText },
+    { href: "/feedback", label: "Feedback", icon: MessageSquare },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const adminNavLinks = [
-    { href: "/admin/dashboard", label: "Overview", icon: BarChart3 },
+    { href: "/admin/overview", label: "Overview", icon: BarChart3 },
     { href: "/admin/applicants", label: "Applicants", icon: Users },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/admin/alerts", label: "Risk Alerts", icon: AlertTriangle },
+    { href: "/admin/risk-alerts", label: "Risk Alerts", icon: AlertTriangle },
     { href: "/admin/sectors", label: "Sectors", icon: MapPin },
-    { href: "/admin/reports", label: "Data & Reports", icon: Database },
+    { href: "/admin/data-reports", label: "Data & Reports", icon: Database },
     { href: "/admin/profile", label: "Admin Profile", icon: Shield },
   ];
 
@@ -70,9 +97,7 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <Link to={role === "admin" ? "/admin/dashboard" : "/dashboard"} className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">H</span>
-          </div>
+          <img src="/heva-logo.svg" alt="HEVA" className="w-8 h-8" />
           <span className="font-bold text-xl text-gray-900">HEVA</span>
           {role === "admin" && (
             <span className="text-sm text-muted-foreground ml-2">Admin</span>
@@ -84,9 +109,9 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
           {navLinks.map((link) => {
             const Icon = link.icon;
             return (
-              <Link
+              <button
                 key={link.href}
-                to={link.href}
+                onClick={() => handleNavClick(link.href)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActiveRoute(link.href)
                     ? "bg-primary text-primary-foreground"
@@ -95,7 +120,7 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
               >
                 <Icon className="w-4 h-4" />
                 <span>{link.label}</span>
-              </Link>
+              </button>
             );
           })}
         </div>
@@ -127,12 +152,12 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
             </div>
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem onClick={() => navigate(`/${role === "admin" ? "admin/" : ""}profile/settings`)}>
+            <DropdownMenuItem onClick={() => navigate(role === "admin" ? "/admin/settings" : "/profile/settings")}>
               <Settings className="w-4 h-4 mr-2" />
               {role === "admin" ? "Admin Settings" : "Profile Settings"}
             </DropdownMenuItem>
             
-            <DropdownMenuItem onClick={() => navigate(`/${role === "admin" ? "admin/" : ""}profile/edit`)}>
+            <DropdownMenuItem onClick={() => navigate(role === "admin" ? "/admin/profile/edit" : "/profile/settings")}>
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
             </DropdownMenuItem>

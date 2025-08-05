@@ -2,57 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light mode as default */
+:root {
+  color-scheme: light;
+}
+
+/* Dark mode support */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0f0f0f;
+  color: #ffffff;
+}
+
+/* High contrast mode */
+.high-contrast {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+  color: rgb(255 255 255 / 1);
+}
+
+.high-contrast * {
+  border-color: rgb(255 255 255 / 0.3) !important;
+}
+
+/* Reduced motion */
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* RTL support for Arabic */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
 /* HEVA Score Kenya - Credit Scoring Platform Design System
    Designed for Kenya's Creative and Cultural Industries
    Colors MUST be HSL format for proper theming
+   Updated for minimal, clean branding
 */
 
 @layer base {
   :root {
-    /* HEVA Brand Colors - Primary Palette */
-    --primary-blue: 204 65% 40%;           /* #2E86AB - Trust, stability */
-    --primary-green: 332 44% 35%;          /* #A23B72 - Growth, success */
-    --accent-orange: 34 97% 49%;           /* #F18F01 - Energy, creativity */
+    /* HEVA Brand Colors - Minimal Palette */
+    --primary-blue: 210 29% 24%;           /* #2C3E50 - Dark blue for primary */
+    --primary-green: 210 29% 24%;          /* #2C3E50 - Same as blue for consistency */
+    --accent-orange: 210 29% 24%;          /* #2C3E50 - Same for minimal approach */
     
-    /* Neutral Colors */
+    /* Neutral Colors - Clean Grays */
     --neutral-dark: 210 29% 24%;           /* #2C3E50 - Text, headers */
-    --neutral-medium: 184 9% 55%;          /* #7F8C8D - Secondary text */
-    --neutral-light: 192 15% 94%;          /* #ECF0F1 - Backgrounds */
+    --neutral-medium: 210 14% 46%;         /* #6C757D - Secondary text */
+    --neutral-light: 210 20% 98%;          /* #F8F9FA - Backgrounds */
     
-    /* Semantic Colors */
-    --success: 145 63% 42%;                /* #27AE60 - Positive actions */
-    --warning: 37 90% 51%;                 /* #F39C12 - Caution states */
-    --error: 6 78% 57%;                    /* #E74C3C - Errors, high risk */
-    --info: 204 70% 53%;                   /* #3498DB - Information */
+    /* Semantic Colors - Muted */
+    --success: 210 29% 24%;                /* #2C3E50 - Consistent with primary */
+    --warning: 210 29% 24%;                /* #2C3E50 - Consistent */
+    --error: 210 29% 24%;                  /* #2C3E50 - Consistent */
+    --info: 210 29% 24%;                   /* #2C3E50 - Consistent */
     
-    /* Shadcn compatible tokens */
-    --background: 0 0% 100%;
-    --foreground: 210 29% 24%;             /* neutral-dark */
+    /* Shadcn compatible tokens - Light mode default */
+    --background: 0 0% 100%;               /* Pure white */
+    --foreground: 210 29% 24%;             /* Dark text */
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                     /* White cards */
     --card-foreground: 210 29% 24%;
 
-    --popover: 0 0% 100%;
+    --popover: 0 0% 100%;                  /* White popovers */
     --popover-foreground: 210 29% 24%;
 
-    --primary: 204 65% 40%;                /* primary-blue */
-    --primary-foreground: 0 0% 100%;
+    --primary: 210 29% 24%;                /* Dark primary */
+    --primary-foreground: 0 0% 100%;       /* White text on primary */
 
-    --secondary: 192 15% 94%;              /* neutral-light */
+    --secondary: 210 20% 98%;              /* Light gray secondary */
     --secondary-foreground: 210 29% 24%;
 
-    --muted: 192 15% 94%;
-    --muted-foreground: 184 9% 55%;        /* neutral-medium */
+    --muted: 210 20% 98%;                  /* Light muted */
+    --muted-foreground: 210 14% 46%;       /* Medium gray text */
 
-    --accent: 34 97% 49%;                  /* accent-orange */
+    --accent: 210 29% 24%;                 /* Dark accent */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 6 78% 57%;              /* error */
+    --destructive: 210 29% 24%;            /* Dark destructive */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 192 15% 88%;
-    --input: 192 15% 88%;
-    --ring: 204 65% 40%;
+    --border: 210 20% 90%;                 /* Light border */
+    --input: 210 20% 90%;                  /* Light input */
+    --ring: 210 29% 24%;                   /* Dark ring */
 
     --radius: 0.75rem;
     
@@ -64,47 +108,31 @@
     --space-xl: 32px;
     --space-xxl: 48px;
     
-    /* Credit score tier colors */
-    --score-excellent: 145 63% 42%;        /* Green: 800+ */
-    --score-prime: 204 65% 40%;            /* Blue: 650-799 */
-    --score-near-prime: 37 90% 51%;        /* Yellow: 500-649 */
-    --score-subprime: 6 78% 57%;           /* Red: below 500 */
+    /* Credit score tier colors - Muted */
+    --score-excellent: 210 29% 24%;        /* Dark: 800+ */
+    --score-prime: 210 29% 24%;            /* Dark: 650-799 */
+    --score-near-prime: 210 29% 24%;       /* Dark: 500-649 */
+    --score-subprime: 210 29% 24%;         /* Dark: below 500 */
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary-blue)), hsl(var(--primary-green)));
-    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(145 63% 52%));
-    --gradient-creative: linear-gradient(135deg, hsl(var(--accent-orange)), hsl(var(--primary-green)));
+    /* Gradients - Minimal */
+    --gradient-primary: linear-gradient(135deg, #000000, #1a1a1a);
+    --gradient-success: linear-gradient(135deg, #2C3E50, #34495E);
+    --gradient-creative: linear-gradient(135deg, #000000, #1a1a1a);
     
-    /* Shadows */
+    /* Shadows - Subtle */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-creative: 0 10px 30px -10px hsl(var(--accent-orange) / 0.3);
+    --shadow-creative: 0 10px 30px -10px rgb(0 0 0 / 0.2);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 29% 24%;
+    --sidebar-primary: 210 29% 24%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 98%;
+    --sidebar-accent-foreground: 210 29% 24%;
+    --sidebar-border: 210 20% 90%;
+    --sidebar-ring: 210 29% 24%;
   }
 
   .dark {
@@ -153,25 +181,28 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    /* Ensure light mode by default */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 
 @layer components {
-  /* Credit Score Tier Styles */
+  /* Credit Score Tier Styles - Minimal */
   .score-excellent {
-    @apply text-green-600 border-green-200 bg-green-50;
+    @apply text-gray-900 border-gray-200 bg-gray-50;
   }
   
   .score-prime {
-    @apply text-blue-600 border-blue-200 bg-blue-50;
+    @apply text-gray-900 border-gray-200 bg-gray-50;
   }
   
   .score-near-prime {
-    @apply text-yellow-600 border-yellow-200 bg-yellow-50;
+    @apply text-gray-900 border-gray-200 bg-gray-50;
   }
   
   .score-subprime {
-    @apply text-red-600 border-red-200 bg-red-50;
+    @apply text-gray-900 border-gray-200 bg-gray-50;
   }
   
   /* Creative Industry Icons */
@@ -180,11 +211,11 @@
   }
   
   .sector-card:hover {
-    @apply border-primary shadow-lg transform -translate-y-1;
+    @apply border-gray-300 shadow-lg transform -translate-y-1;
   }
   
   .sector-card.selected {
-    @apply border-primary bg-primary/5 ring-2 ring-primary/20;
+    @apply border-gray-400 bg-gray-50 ring-2 ring-gray-200;
   }
   
   /* Animations */

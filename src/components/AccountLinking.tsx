@@ -68,7 +68,7 @@ const getStatusBadge = (status: AccountProvider["status"], language: "en" | "sw"
       variant: "secondary" as const,
       icon: <AlertCircle className="w-3 h-3" />,
       text: language === "en" ? "Not Connected" : "Haijaungana",
-      className: "bg-neutral-light text-neutral-dark"
+      className: "bg-white text-neutral-dark"
     },
     syncing: {
       variant: "outline" as const,

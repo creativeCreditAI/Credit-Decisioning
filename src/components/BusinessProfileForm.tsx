@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 
 interface BusinessProfileData {
+  applicantName: string;
+  applicantRole: string;
+  businessEmail: string;
   businessName: string;
   creatorSector: string;
   revenueRange: string;
@@ -46,6 +49,9 @@ export const BusinessProfileForm = ({
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<BusinessProfileData>({
+    applicantName: "",
+    applicantRole: "",
+    businessEmail: "",
     businessName: "",
     creatorSector: "",
     revenueRange: "",
@@ -67,6 +73,14 @@ export const BusinessProfileForm = ({
     { value: "tech", label: language === "en" ? "Tech & Digital" : "Teknolojia na Kidijitali" },
     { value: "food", label: language === "en" ? "Food & Culinary" : "Chakula na Upishi" },
     { value: "art", label: language === "en" ? "Visual Arts" : "Sanaa za Kuona" },
+    { value: "animation", label: language === "en" ? "Animation & Motion Graphics" : "Uhuishaji na Michoro ya Mwendo" },
+    { value: "podcasting", label: language === "en" ? "Podcasting & Radio Production" : "Uzalishaji wa Podikasti na Redio" },
+    { value: "publishing", label: language === "en" ? "Comic & Book Publishing" : "Uchapishaji wa Vitabu na Katuni" },
+    { value: "gaming", label: language === "en" ? "Gaming & Esports" : "Michezo na Esports" },
+    { value: "product-design", label: language === "en" ? "Digital Product Design" : "Ubunifu wa Bidhaa za Kidijitali" },
+    { value: "traditional-crafts", label: language === "en" ? "Artisan & Traditional Crafts" : "Ufundi wa Jadi na wa Kisasa" },
+    { value: "cultural-tourism", label: language === "en" ? "Cultural Tourism" : "Utalii wa Kitamaduni" },
+    { value: "content-creation", label: language === "en" ? "Content Creation" : "Uundaji wa Maudhui" },
     { value: "other", label: language === "en" ? "Other Creative" : "Ubunifu Mwingine" }
   ];
 
@@ -83,7 +97,14 @@ export const BusinessProfileForm = ({
       id: 1,
       title: language === "en" ? "Basic Information" : "Maelezo ya Msingi",
       description: language === "en" ? "Tell us about your business" : "Tuambie kuhusu biashara yako",
-      fields: ["businessName", "creatorSector", "revenueRange"]
+      fields: [
+        "applicantName",
+        "applicantRole",
+        "businessEmail",
+        "businessName",
+        "creatorSector",
+        "revenueRange"
+      ]
     },
     {
       id: 2,
@@ -194,6 +215,45 @@ export const BusinessProfileForm = ({
 
   const renderField = (fieldName: string) => {
     switch (fieldName) {
+      case "applicantName":
+        return (
+          <div key={fieldName} className="space-y-2">
+            <Label htmlFor={fieldName}>{language === "en" ? "Name of Applicant (Full Name)" : "Jina Kamili la Mwombaji"} *</Label>
+            <Input
+              id={fieldName}
+              value={formData.applicantName}
+              onChange={e => handleFieldChange(fieldName, e.target.value)}
+              placeholder={language === "en" ? "Enter your full name" : "Ingiza jina lako kamili"}
+              required
+            />
+          </div>
+        );
+      case "applicantRole":
+        return (
+          <div key={fieldName} className="space-y-2">
+            <Label htmlFor={fieldName}>{language === "en" ? "Applicant’s Role in the Business" : "Nafasi ya Mwombaji katika Biashara"} *</Label>
+            <Input
+              id={fieldName}
+              value={formData.applicantRole}
+              onChange={e => handleFieldChange(fieldName, e.target.value)}
+              placeholder={language === "en" ? "e.g. Founder, CEO, Head of Finance" : "mf. Mwanzilishi, Mkurugenzi, Mkuu wa Fedha"}
+              required
+            />
+          </div>
+        );
+      case "businessEmail":
+        return (
+          <div key={fieldName} className="space-y-2">
+            <Label htmlFor={fieldName}>{language === "en" ? "Business Email Address" : "Barua Pepe ya Biashara"}</Label>
+            <Input
+              id={fieldName}
+              type="email"
+              value={formData.businessEmail}
+              onChange={e => handleFieldChange(fieldName, e.target.value)}
+              placeholder={language === "en" ? "Enter business email address" : "Ingiza barua pepe ya biashara"}
+            />
+          </div>
+        );
       case "businessName":
         return (
           <div key={fieldName} className="space-y-2">

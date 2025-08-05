@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +17,12 @@ import {
   CheckCircle, 
   AlertCircle,
   Eye,
+  EyeOff,
   Download,
   Trash2,
   ArrowRight,
-  Info
+  Info,
+  Lock
 } from "lucide-react";
 
 interface UploadedFile {
@@ -60,6 +64,12 @@ export const DocumentUpload = ({
   const [documents, setDocuments] = useState<Record<string, UploadedFile[]>>({});
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Password setup state
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const documentFields: DocumentField[] = [
     {
@@ -249,11 +259,16 @@ export const DocumentUpload = ({
   };
 
   const isFormComplete = () => {
-    return documentFields.every(field => {
+    const documentsComplete = documentFields.every(field => {
       if (!field.required) return true;
       const fieldFiles = documents[field.id] || [];
       return fieldFiles.length > 0 && fieldFiles.every(file => file.status === 'completed');
     });
+    
+    // Check password validation
+    const passwordValid = password.length >= 8 && password === confirmPassword;
+    
+    return documentsComplete && passwordValid;
   };
 
   const getCompletionPercentage = () => {
@@ -271,15 +286,33 @@ export const DocumentUpload = ({
     setIsSubmitting(true);
     
     try {
+      // Get business profile data to access business email
+      const businessProfileData = localStorage.getItem("businessProfile");
+      let businessProfile = null;
+      
+      if (businessProfileData) {
+        try {
+          businessProfile = JSON.parse(businessProfileData);
+        } catch (e) {
+          console.error("Error parsing business profile:", e);
+        }
+      }
+      
       // 🔌 Backend integration: Save all document data
       console.log("Saving all document data:", documents);
       
+      // 🔌 Backend integration: Save user credentials securely
+      console.log("Saving user credentials:", {
+        email: businessProfile?.businessEmail,
+        password: "***HASHED_PASSWORD***" // In real implementation, hash the password
+      });
+      
       // Create user account after successful application completion
       const userData = {
-        name: "Grace Wanjiku", // This would come from previous form steps
-        email: "grace@example.com", // This would come from previous form steps
-        businessName: "Grace Designs",
-        sector: "Fashion Design"
+        name: businessProfile?.applicantName || "New User",
+        email: businessProfile?.businessEmail || "user@example.com",
+        businessName: businessProfile?.businessName || "Business",
+        sector: businessProfile?.creatorSector || "Creative"
       };
       
       const accountCreated = await createUserAccount(userData);
@@ -448,6 +481,128 @@ export const DocumentUpload = ({
           );
         })}
       </div>
+
+      {/* Password Setup Section */}
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">
+                {language === "en" ? "Set Up Your Account" : "Weka Akaunti Yako"}
+              </CardTitle>
+              <CardDescription>
+                {language === "en" 
+                  ? "Create your login credentials to access the dashboard"
+                  : "Unda mamlaka yako ya kuingia kufikia dashibodi"
+                }
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">
+                {language === "en" ? "Password" : "Nywila"} *
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={language === "en" ? "Enter your password" : "Ingiza nywila yako"}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {password.length > 0 && password.length < 8 && (
+                <p className="text-xs text-red-600">
+                  {language === "en" 
+                    ? "Password must be at least 8 characters long"
+                    : "Nywila lazima iwe na herufi 8 au zaidi"
+                  }
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">
+                {language === "en" ? "Confirm Password" : "Thibitisha Nywila"} *
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={language === "en" ? "Confirm your password" : "Thibitisha nywila yako"}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {confirmPassword.length > 0 && password !== confirmPassword && (
+                <p className="text-xs text-red-600">
+                  {language === "en" 
+                    ? "Passwords do not match"
+                    : "Nywila hazifanani"
+                  }
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              {language === "en" 
+                ? "Your business email will be used as your username to access the dashboard."
+                : "Barua pepe ya biashara yako itatumika kama jina la mtumiaji kufikia dashibodi."
+              }
+            </AlertDescription>
+          </Alert>
+          
+          {password.length >= 8 && password === confirmPassword && (
+            <div className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm text-green-700">
+                {language === "en" 
+                  ? "Password setup complete"
+                  : "Mpangilio wa nywila umekamilika"
+                }
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Submit Section */}
       <Card className="border-primary/20 bg-primary/5">
