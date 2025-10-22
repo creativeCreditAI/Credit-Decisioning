@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,9 @@ import {
   User, 
   Shield, 
   ArrowRight,
+  ArrowDownRight,
+  ArrowDownLeft,
+  Sparkles,
   TrendingUp,
   Users,
   Award,
@@ -25,10 +28,18 @@ import {
   Play
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import { joinWaitlist, getWaitlistCount } from "@/services/waitlistService";
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [isFundingDropdownOpen, setIsFundingDropdownOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string>("");
 
   const handleFundingSelect = (type: string) => {
     setIsFundingDropdownOpen(false);
@@ -72,6 +83,10 @@ export const LandingPage = () => {
     { label: "Average Credit Score", value: "720", icon: <Star className="w-5 h-5" /> }
   ];
 
+  useEffect(() => {
+    getWaitlistCount().then(setWaitlistCount).catch(() => {});
+  }, []);
+
   const features = [
     {
       title: "Digital Credit Scoring",
@@ -91,27 +106,95 @@ export const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-white to-sky-50">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      {/* Hero Section (Join Waitlist first) */}
+      <section id="waitlist" className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
             <Badge variant="secondary" className="mb-4">
-              Empowering Creative Entrepreneurs
+              AI-POWERED CREDIT DECISIONING
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Unlock Your Creative
-              <span className="text-primary block">Potential</span>
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-6">
+              Unlock Creative
+              <span className="text-primary block">Financial Freedom</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              HEVA provides innovative credit scoring and funding solutions for Kenya's creative entrepreneurs. 
-              Get the financial support you need to grow your creative business.
+            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Revolutionary platform designed for creative entrepreneurs and businesses. Get instant, fair credit assessments with unprecedented accuracy.
             </p>
-            
+
+            {/* Waitlist Inline Form */}
+            <div className="relative">
+              {/* Soft glow background */}
+              <div className="pointer-events-none absolute inset-0 -z-10 mx-auto h-40 w-[600px] max-w-full rounded-full bg-sky-100/60 blur-2xl" />
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!email.trim()) return toast({ title: "Email required", description: "Enter your email to join the waitlist." });
+                setJoining(true);
+                try {
+                  const entry = await joinWaitlist({ email });
+                  toast({ title: "You're on the list!", description: `${entry.email} added successfully.` });
+                  setSuccessMsg(`Success! ${entry.email} has been added to the waitlist.`);
+                  setEmail("");
+                  // Refresh count from backend
+                  getWaitlistCount().then(setWaitlistCount).catch(() => {});
+                } catch (err: any) {
+                  toast({ title: "Could not join", description: err?.message || "Please try again." });
+                } finally {
+                  setJoining(false);
+                }
+              }}
+              className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-3"
+            >
+              <div className="sm:col-span-2">
+                <Label htmlFor="email" className="sr-only">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <div className="relative">
+                  {/* Subtle accent ring */}
+                  <span className="pointer-events-none absolute -inset-1 rounded-xl bg-sky-300/40 blur-md transition-opacity group-hover:opacity-70" aria-hidden />
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="group w-full relative overflow-hidden bg-sky-500 text-white shadow-md hover:bg-sky-600 focus-visible:ring-4 focus-visible:ring-sky-200"
+                    disabled={joining}
+                  >
+                    <Sparkles className="mr-2 h-5 w-5 opacity-90" />
+                    {joining ? "Joining..." : "Join the Waitlist"}
+                  </Button>
+                  {/* Bouncing arrows pointing to button */}
+                  <ArrowDownRight className="absolute -right-6 -top-6 h-8 w-8 text-sky-500 animate-bounce" />
+                  <ArrowDownLeft className="absolute -left-6 -top-6 h-8 w-8 text-sky-400 animate-bounce [animation-delay:150ms]" />
+                </div>
+              </div>
+            </form>
+            {successMsg && (
+              <p className="mt-3 text-sm font-medium text-green-700 bg-green-50 inline-block px-3 py-1 rounded-md border border-green-200">{successMsg}</p>
+            )}
+            {waitlistCount !== null && (
+              <p className="mt-3 text-sm text-gray-600">
+                {waitlistCount > 0 ? `${waitlistCount.toLocaleString()}+ already joined` : `Be the first to join`}
+              </p>
+            )}
+
+            {/* Secondary actions */}
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <Button variant="outline" size="lg" onClick={() => navigate("/eligibility-check")}>Learn More</Button>
+            </div>
+
             {/* Three Clear Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
               {/* Sign in as Admin */}
               <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/login")}>
                 <CardContent className="text-center space-y-4">

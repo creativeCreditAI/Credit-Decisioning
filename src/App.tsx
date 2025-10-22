@@ -33,6 +33,11 @@ import { FeedbackForm } from "@/components/FeedbackForm";
 import { ProfileCompletionPage } from "@/components/ProfileCompletionPage";
 import ApplicantProfile from "@/components/ApplicantProfile";
 import { AdminProfileSettings } from "@/components/AdminProfileSettings";
+import { SetupGuide } from "@/components/SetupGuide";
+import { BackendStatusMonitor } from "@/components/BackendStatusMonitor";
+import { BackendTester } from "@/components/BackendTester";
+import { IntegratedDashboard } from "@/components/IntegratedDashboard";
+import { SmartApplicationWizard } from "@/components/SmartApplicationWizard";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +74,11 @@ const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/setup-guide" element={<SetupGuide />} />
+        <Route path="/backend-status" element={<BackendStatusMonitor />} />
+        <Route path="/backend-tester" element={<BackendTester />} />
+        <Route path="/integrated-dashboard" element={<IntegratedDashboard />} />
+        <Route path="/smart-application" element={<SmartApplicationWizard />} />
         <Route path="/eligibility-check" element={<EligibilityCheckForm />} />
         <Route path="/funding-selection" element={<FundingSelector />} />
         <Route path="/business-profile" element={<BusinessProfileForm />} />

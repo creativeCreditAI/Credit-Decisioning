@@ -24,7 +24,12 @@ import {
   MapPin,
   Database,
   Shield,
-  Edit
+  Edit,
+  Wrench,
+  Activity,
+  TestTube,
+  BookOpen,
+  Zap
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -75,6 +80,8 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
 
   const userNavLinks = [
     { href: "/dashboard", label: "Home", icon: Home },
+    { href: "/integrated-dashboard", label: "Integrated Dashboard", icon: Zap },
+    { href: "/smart-application", label: "Smart Application", icon: FileText },
     { href: "#progress", label: "Application Progress", icon: FileText },
     { href: "/feedback", label: "Feedback", icon: MessageSquare },
     { href: "/settings", label: "Settings", icon: Settings },
@@ -87,6 +94,7 @@ export const RoleBasedNavbar = ({ role }: RoleBasedNavbarProps) => {
     { href: "/admin/risk-alerts", label: "Risk Alerts", icon: AlertTriangle },
     { href: "/admin/sectors", label: "Sectors", icon: MapPin },
     { href: "/admin/data-reports", label: "Data & Reports", icon: Database },
+    { href: "/integrated-dashboard", label: "Integrated Dashboard", icon: Zap },
     { href: "/admin/profile", label: "Admin Profile", icon: Shield },
   ];
 

@@ -77,6 +77,9 @@ export const Navbar = () => {
 
         {/* Auth Buttons */}
         <div className="flex items-center space-x-3">
+          <Button asChild className="bg-sky-500 hover:bg-sky-600 text-white shadow-md">
+            <a href="#waitlist">Join Waitlist</a>
+          </Button>
           <DropdownMenu open={isFundingDropdownOpen} onOpenChange={setIsFundingDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="default">

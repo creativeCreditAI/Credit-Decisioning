@@ -1,15 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "user" | "admin";
-  avatar?: string;
-  businessName?: string;
-  sector?: string;
-  applicationId?: string;
-}
+import { AuthService, User } from "../services/backendService";
 
 interface AuthContextType {
   user: User | null;
@@ -31,120 +21,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔌 Placeholder for backend call
-  const validateUserLogin = async (email: string, password: string): Promise<User | null> => {
-    console.log("Validating user login:", { email, password });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if user exists in localStorage (for demo purposes)
-    const savedUser = localStorage.getItem("heva_user");
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        if (userData.email === email) {
-          return userData;
-        }
-      } catch (e) {
-        console.error("Error parsing saved user:", e);
-      }
-    }
-    
-    // Mock user data - in real app, this would come from backend
-    if (email && password.length >= 6) {
-      // Get business profile data if available
-      const businessProfileData = localStorage.getItem("businessProfile");
-      let businessProfile = null;
-      
-      if (businessProfileData) {
-        try {
-          businessProfile = JSON.parse(businessProfileData);
-        } catch (e) {
-          console.error("Error parsing business profile:", e);
-        }
-      }
-      
-      return {
-        id: "user-123",
-        name: businessProfile?.applicantName || businessProfile?.businessName || "Grace Wanjiku",
-        email: email,
-        role: "user",
-        businessName: businessProfile?.businessName || "Grace Designs",
-        sector: businessProfile?.creatorSector || "Fashion Design",
-        applicationId: "APP-2024-001"
-      };
-    }
-    return null;
-  };
-
-  // 🔌 Placeholder for backend call
-  const validateAdminLogin = async (email: string, password: string): Promise<User | null> => {
-    console.log("Validating admin login:", { email, password });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // No email restrictions for admin login (as requested)
-    if (email && password.length >= 6) {
-      return {
-        id: "admin-456",
-        name: "James Mwangi",
-        email: email,
-        role: "admin"
-      };
-    }
-    return null;
-  };
-
-  // 🔌 Placeholder for backend call - Create user account after application completion
-  const createUserAccount = async (userData: Omit<User, 'id' | 'role'>): Promise<boolean> => {
-    console.log("Creating user account:", userData);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    try {
-      // Get business profile data from localStorage if available
-      const businessProfileData = localStorage.getItem("businessProfile");
-      let businessProfile = null;
-      
-      if (businessProfileData) {
-        try {
-          businessProfile = JSON.parse(businessProfileData);
-        } catch (e) {
-          console.error("Error parsing business profile:", e);
-        }
-      }
-      
-      // In real implementation, this would:
-      // 1. Save user data to database
-      // 2. Generate unique user ID
-      // 3. Create application record
-      // 4. Set up user credentials
-      
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        role: "user",
-        name: businessProfile?.applicantName || userData.name || "New User",
-        email: businessProfile?.businessEmail || userData.email,
-        businessName: businessProfile?.businessName || userData.businessName,
-        sector: businessProfile?.creatorSector || userData.sector,
-        applicationId: `APP-${Date.now()}`
-      };
-      
-      // Auto-login the newly created user
-      setUser(newUser);
-      localStorage.setItem("heva_user", JSON.stringify(newUser));
-      
-      console.log("User account created successfully:", newUser);
-      return true;
-    } catch (error) {
-      console.error("Error creating user account:", error);
-      return false;
-    }
-  };
-
   const login = async (email: string, password: string, role: "user" | "admin"): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -152,9 +28,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       let userData: User | null = null;
       
       if (role === "admin") {
-        userData = await validateAdminLogin(email, password);
+        userData = await AuthService.validateAdminLogin(email, password);
       } else {
-        userData = await validateUserLogin(email, password);
+        userData = await AuthService.validateUserLogin(email, password);
       }
       
       if (userData) {
@@ -174,32 +50,82 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = () => {
     setUser(null);
+    AuthService.logout();
     localStorage.removeItem("heva_user");
     // Redirect to landing page
     window.location.href = "/";
   };
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem("heva_user", JSON.stringify(updatedUser));
+  const updateUser = async (userData: Partial<User>) => {
+    try {
+      if (user) {
+        const updatedUser = await AuthService.updateProfile(userData);
+        if (updatedUser) {
+          setUser(updatedUser);
+          localStorage.setItem("heva_user", JSON.stringify(updatedUser));
+        }
+      }
+    } catch (error) {
+      console.error("Update user error:", error);
+    }
+  };
+
+  const createUserAccount = async (userData: Omit<User, 'id' | 'role'>): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const newUser = await AuthService.createUserAccount(userData);
+      
+      if (newUser) {
+        setUser(newUser);
+        localStorage.setItem("heva_user", JSON.stringify(newUser));
+        console.log("User account created successfully:", newUser);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error creating user account:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Check for existing session on app load
   useEffect(() => {
-    const savedUser = localStorage.getItem("heva_user");
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error("Error parsing saved user:", error);
-        localStorage.removeItem("heva_user");
+    const initializeAuth = async () => {
+      const savedUser = localStorage.getItem("heva_user");
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          
+          // Validate token with backend
+          const isValid = await AuthService.validateToken();
+          if (isValid) {
+            // Get fresh user data from backend
+            const freshUserData = await AuthService.getUserProfile();
+            if (freshUserData) {
+              setUser(freshUserData);
+              localStorage.setItem("heva_user", JSON.stringify(freshUserData));
+            } else {
+              setUser(userData); // Fallback to cached data
+            }
+          } else {
+            // Token is invalid, clear local storage
+            localStorage.removeItem("heva_user");
+            localStorage.removeItem("auth_token");
+          }
+        } catch (error) {
+          console.error("Error initializing auth:", error);
+          localStorage.removeItem("heva_user");
+          localStorage.removeItem("auth_token");
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const value: AuthContextType = {
